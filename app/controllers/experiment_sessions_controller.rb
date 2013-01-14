@@ -132,19 +132,21 @@ class ExperimentSessionsController < ApplicationController
   ## POST /experiment_sessions/1
   def uploadCSV
     #Grab the experiment so we can get field names
-    @experiment_session = ExperimentSession.new({:experiment_id => params[:id]})
+    
+    @experiment_session = ExperimentSession.new(:experiment_id => params[:eid], :user_id => @cur_user.id, :title => "#{@cur_user.name}'s Session!")
     @experiment = @experiment_session.experiment
     @data_set = DataSet.all({:experiment_session_id => @experiment_session.id})
     
     
     #Get a link to the temp file uploaded to the server
-    @file = params[:experiment_session][:file]
+    @file = params[:csv].tempfile
     
     #Read the CSV
     require "csv"
     
-    data = CSV.read(@file.tempfile)
-    
+    data = CSV.read(@file)
+    logger.info "----------------------"
+    logger.info params[:eid]
     data = sortColumns(data, doColumnsMatch(@experiment, data[0]))
     
     #Parse out the headers and the data
@@ -179,11 +181,11 @@ class ExperimentSessionsController < ApplicationController
     @dataObject["data"].each do |d|
       mongo_data.push d.values
     end
-      
+    
+    @experiment_session.save!
     data_to_add = DataSet.new(:experiment_session_id => @experiment_session.id, :data => mongo_data)    
     
-    if data_to_add.save!
-      @experiment_session.save()
+    if data_to_add.save!      
       response = { status: 'success', message: @dataObject }
     else
       response = { status: 'fail' }
@@ -192,6 +194,7 @@ class ExperimentSessionsController < ApplicationController
     #Send the object as json
     respond_to do |format|
       format.json { render json: response }
+      format.html { redirect_to "/experiments/#{@experiment.id}/sessions" }
     end
     
   end
