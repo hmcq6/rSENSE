@@ -115,7 +115,8 @@ $ ->
                                   </tr>"
 
       ($ "button.cancel_upload_button").click ->
-        ($ "#match_box").modal("hide")
+        location.reload()
+        #($ "#match_box").modal("hide")
 
       ($ "button.finished_button").click ->
 
@@ -218,10 +219,10 @@ $ ->
       false
 
     ($ '#csv_file_input').click ->
-      ($ '#csv_file_form').attr 'action', "#{window.location}/CSVUpload"
+      ($ '#csv_file_form').attr 'action', "#{window.location.pathname}/CSVUpload"
 
     ($ '#template_file_form').click ->
-      ($ '#template_file_form').attr 'action', "#{window.location}/templateFields"
+      ($ '#template_file_form').attr 'action', "#{window.location.pathname}/templateFields"
 
     ($ '#template-from-file').click ->
       ($ '#template_file_input').click()
@@ -259,7 +260,7 @@ $ ->
           else
             respond_csv(data)
       else
-        ($ '#doc_url').css 'background-color', 'red'
+        ($ '#doc_url').errorFlash()
 
     # Takes all sessions that are checked, appends its id to the url and
     # redirects the user to the view sessions page (Vis page)
