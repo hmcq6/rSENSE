@@ -2,6 +2,9 @@
 $ ->
   if namespace.controller is "users" and namespace.action is "index"
 
+    ($ '#mobile_menu').find('.active').removeClass 'active'
+    ($ '#a_users').addClass 'active'
+    
     addItem = (object) ->
       newItem = """
         <div class='item word-break'>

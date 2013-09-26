@@ -5,6 +5,9 @@
 $ ->
   if namespace.controller is "visualizations" and namespace.action is "index"
 
+    ($ '#mobile_menu').find('.active').removeClass 'active'
+    ($ '#a_viz').addClass 'active'
+    
     addItem = (object) ->
       newItem = """
         <div class='item word-break'>

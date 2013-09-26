@@ -4,6 +4,8 @@
 
 $ ->
   if namespace.controller is "tutorials" and namespace.action is "index"
+    ($ '#mobile_menu').find('.active').removeClass 'active'
+    ($ '#a_tutorials').addClass 'active'
 
     addItem = (object) ->
       newItem = """

@@ -19,6 +19,40 @@
     <%= raw flash[:debug] %> 
     -->
     <% end %>
+    
+    <!-- Mobile Menu -->
+    <div class="hidden-desktop" style="float: left;">
+      <div id="mobile_menu" data-role="panel" style="z-index: 10;">
+      
+        <ul class="nav nav-list">
+        
+          <li class="nav-header">My Stuff</li>
+          
+          <% if @cur_user == nil %>
+            <li><a href="" class="login">Login</a></li>
+            <li><a href="<%= new_user_path %>">Register</a></li>
+          <% else %>
+            <li><a href="<%= user_path(@cur_user) %>"><%= @cur_user.name %></a></li>
+            <li><%= link_to 'Logout', login_path(), method: :delete %></li>
+          <% end %>
+          
+          <li class="nav-header">Navigation</li>
+          <li class="active" id="a_home"><a href="/"><i class="icon-home icon-white"></i>Home</a></li>
+          <li class="nav-header nav-divider"><hr /></li>
+          <li id="a_news"><a href="/news"><i class="icon-book icon-white"></i>News</a></li>
+          <li class="nav-header nav-divider"><hr /></li>
+          <li id="a_projects"><a href="/projects"><i class="icon-folder-open icon-white"></i>Projects</a></li>
+          <li class="nav-header nav-divider"><hr /></li>
+          <li id="a_users"><a href="/users"><i class="icon-user icon-white"></i>Users</a></li>
+          <li class="nav-header nav-divider"><hr /></li>
+          <li id="a_viz"><a href="/visualizations"><i class="icon-picture icon-white"></i>Visualizations</a></li>
+          <li class="nav-header nav-divider"><hr /></li>
+          <li id="a_tutorials"><a href="/tutorials"><i class="icon-info-sign icon-white"></i>Tutorials</a></li>
+        
+        </ul>
+      
+      </div>
+    </div>
 
     <div style="min-height:100%;position:relative;">
       
@@ -114,39 +148,6 @@
       <div style="padding:50px 0px 70px 0px; margin:0; min-height:100%; <%= @layout_wide ? 'margin-right:40px;' : '' %>">
         <div class="container mainContent <%= @layout_wide ? 'mc-wide' : '' %>" data-role="page">
           <%= yield %>
-        </div>
-      </div>
-      
-      <!-- Mobile Menu -->
-      <div class="hidden-desktop" style="float: left;">
-        <div id="mobile_menu" data-role="panel" style="z-index: 10;">
-       
-          <ul class="nav nav-list">
-         
-            <li class="nav-header">My Stuff</li>
-         
-            <% if @cur_user == nil %>
-              <li><a href="" class="login">Login</a></li>
-              <li><a href="<%= new_user_path %>">Register</a></li>
-            <% else %>
-              <li><a href="<%= user_path(@cur_user) %>"><%= @cur_user.name %></a></li>
-              <li><%= link_to 'Logout', login_path(), method: :delete %></li>
-            <% end %>
-           
-            <li class="nav-header">Navigation</li>
-            <li class="active"><a href="/"><i class="icon-home icon-white"></i>Home</a></li>
-            <li><a href="/news"><i class="icon-book icon-white"></i>News</a></li>
-            <li class="nav-header nav-divider"><hr /></li>
-            <li><a href="/projects"><i class="icon-folder-open icon-white"></i>Projects</a></li>
-            <li class="nav-header nav-divider"><hr /></li>
-            <li><a href="/users"><i class="icon-user icon-white"></i>Users</a></li>
-            <li class="nav-header nav-divider"><hr /></li>
-            <li><a href="/visualizations"><i class="icon-picture icon-white"></i>Visualizations</a></li>
-            <li class="nav-header nav-divider"><hr /></li>
-            <li><a href="/tutorials"><i class="icon-info-sign icon-white"></i>Tutorials</a></li>
-
-          </ul>
-       
         </div>
       </div>
        

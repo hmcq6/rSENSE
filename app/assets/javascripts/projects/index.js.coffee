@@ -2,6 +2,9 @@
 
 $ ->
   if namespace.controller is "projects" and namespace.action is "index"
+    
+    ($ '#mobile_menu').find('.active').removeClass 'active'
+    ($ '#a_projects').addClass 'active'
 
     addItem = (object) ->
       newItem = """
@@ -12,10 +15,30 @@ $ ->
           <b>Owner: </b><a href='#{object.ownerUrl}'>#{object.ownerName}</a><br />
           <b>Created: </b>#{object.timeAgoInWords} ago (on #{object.createdAt})<br />
        </div>
+      """      
+      newMobileItem = """
+        <a href='#{object.url}'>
+          <div class='well'>
+            <div style="width: 95%;" class="pull-left">
+              <span>
+                #{if object.mediaSrc then "<div class='center'><a href='#{object.url}'><img src='#{object.mediaSrc}'></img></a></div>" else ""}
+              </span>
+              <span>#{object.name}</br></span>
+              <span>
+                <b>Owner: </b><a href='#{object.ownerUrl}'>#{object.ownerName}</a><br />
+                <b>Created: </b>#{object.timeAgoInWords} ago (on #{object.createdAt})<br />
+              </span>
+            </div>
+            <div style="height: 100%;"><i class="icon-chevron-right"></i><span style="clear: both;"></span></div>
+            <div style="clear: both;"></div>
+          </div>
+        </a>
       """
       newItem = ($ newItem)
+      newMobileItem = ($ newMobileItem)
 
       ($ '#projects').append(newItem).isotope('insert', newItem)
+      ($ '#mobile_projects').append(newMobileItem)
 
 
     ($ '#projects_search').submit ->
