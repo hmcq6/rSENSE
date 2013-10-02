@@ -173,6 +173,11 @@ $ ->
       targets = ($ document).find(".dataset .ds_selector input:checked")
       ds_list = (get_ds_id t for t in targets)
       window.location = ($ this).attr("href") + ds_list
+      
+    ($ '#export_button').click (e) ->
+      targets = ($ document).find(".dataset .ds_selector input:checked")
+      ds_list = (get_ds_id t for t in targets)
+      window.location = ($ this).attr("href") + ds_list
 
     # get the session number for viewing vises
     get_ds_id = (t) ->
