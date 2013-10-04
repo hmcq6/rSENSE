@@ -67,16 +67,16 @@ $ ->
     ### Generate tabs ###
     for vis of data.allVis
         if data.allVis[vis] in data.relVis
-            ($ '#visTabList').append "<li class='vis_tab'><a href='##{data.allVis[vis].toLowerCase()}_canvas'>#{data.allVis[vis]}</a></li>"
+            ($ '#visTabList').append "<li class='vis_tab'><a href='##{data.allVis[vis].toLowerCase()}_canvas'><span class='hidden-phone'>#{data.allVis[vis]}</span><img class='visible-phone' height='32px' width='32' src='/assets/vis_#{data.allVis[vis].toLowerCase()}_dark.png' data-disable-src='/assets/vis_#{data.allVis[vis].toLowerCase()}_light.png' ></a></li>"
         else
-            ($ '#visTabList').append "<li class='vis_tab' ><a href='##{data.allVis[vis].toLowerCase()}_canvas' style='text-decoration:line-through'>#{data.allVis[vis]}</a></li>"
+            ($ '#visTabList').append "<li class='vis_tab' ><a href='##{data.allVis[vis].toLowerCase()}_canvas'><span class='hidden-phone' style='text-decoration:line-through'>#{data.allVis[vis]}</span><img class='visible-phone' height='32px' width='32' src='/assets/vis_#{data.allVis[vis].toLowerCase()}_light.png' data-enable-src='/assets/vis_#{data.allVis[vis].toLowerCase()}_dark.png' /></a></li>"
             
     ### Jquery up the tabs ###
     ($ '#viscontainer').tabs()
     ($ '#tabcontainer').tabs()
     
 
-    ($ '#viscontainer').width ($ '#viscontainer').width() - (($ '#viscontainer').outerWidth() - ($ '#viscontainer').width())
+#     ($ '#viscontainer').width ($ '#viscontainer').width() - (($ '#viscontainer').outerWidth() - ($ '#viscontainer').width())
     
     ### Pick vis ###
     if not (data.defaultVis in data.relVis)
@@ -92,7 +92,15 @@ $ ->
     ($ '#visTabList a').click ->
         oldVis = globals.curVis
 
-        globals.curVis = (eval 'globals.' + innerTextCompat(this).toLowerCase())
+        href = ($ this).attr 'href'
+        
+        start = href.indexOf('#')
+        end = href.indexOf('_canvas')
+        start = start + 1
+        
+        link = href.substr(start, end-start)
+      
+        globals.curVis = (eval 'globals.' + link)
         
         if oldVis is globals.curVis
             return
@@ -103,22 +111,26 @@ $ ->
     #Set initial div sizes
     containerSize = ($ '#viscontainer').width()
     hiderSize     = ($ '#controlhider').outerWidth()
-    controlSize =  if globals.options? and globals.options.startCollasped?
+    controlSize =  if globals.options? and globals.options.startCollapsed?
       $("#control_hide_button").html('<')
       0
     else
       $("#control_hide_button").html('>')
       globals.CONTROL_SIZE
 
-    visWidth = containerSize - (hiderSize + controlSize + globals.VIS_MARGIN_WIDTH)
+    visWidth = containerSize - (hiderSize + controlSize + 10)
     visHeight = ($ '#viscontainer').height() - ($ '#visTabList').outerHeight()
-
-    ($ '.vis_canvas').width  visWidth
-    ($ '.vis_canvas').height visHeight
     
-    ($ '#controlhider').height visHeight
+    if globals.options? and globals.options.presentation?
+      ($ '.vis_canvas').width  "100%"
+      ($ '.vis_canvas').height "100%"
+    else
+      ($ '.vis_canvas').width  visWidth
+      ($ '.vis_canvas').height visHeight
     
-    ($ '#controldiv').width controlSize
+#     ($ '#controlhider').height visHeight
+#     
+    ($ '#controldiv').width 0
     ($ '#controldiv').height visHeight
 
     ($ '.vis_canvas').css('padding', 0)
@@ -129,21 +141,41 @@ $ ->
     globals.curVis.start()
     
     #Toggle control panel
-    resizeVis = (aniLength = 600) ->
-    
+    resizeVis = (toggleControls = true, aniLength = 600) ->
+        
+        ($ "#viscontainer").height(($ window).height() - h)
+        
         containerSize = ($ '#viscontainer').width()
         hiderSize     = ($ '#controlhider').outerWidth()
-        controlSize = if ($ '#controldiv').width() <= 0
+        controlSize   = ($ '#controldiv').width()
+            
+        if toggleControls
+          controlSize = if ($ '#controldiv').width() <= 0
             globals.CONTROL_SIZE
-        else
+          else
             0
 
-        newWidth = containerSize - (hiderSize + controlSize + globals.VIS_MARGIN_WIDTH)
+        newWidth = containerSize - (hiderSize + controlSize + 10)
+        newHeight = ($ '#viscontainer').height() - ($ '#visTabList').outerHeight()
         
+        ($ '#controldiv').height newHeight
         ($ '#controldiv').animate {width: controlSize}, aniLength, 'linear'
+        
+        ($ '.vis_canvas').height newHeight
         ($ '.vis_canvas').animate {width: newWidth}, aniLength, 'linear'
+        
         globals.curVis.resize newWidth, $('.vis_canvas').height(), aniLength
 
+    # Set initial size if not in presentation mode
+    if globals.options? and globals.options.presentation?
+      1
+    else
+      resizeVis()
+      
+    # Resize vis on page resize
+    ($ window).resize () ->
+      resizeVis(false, 0)
+      
     ($ '#control_hide_button').click ->
         
         if ($ '#controldiv').width() is 0

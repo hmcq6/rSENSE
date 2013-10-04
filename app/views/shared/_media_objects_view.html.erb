@@ -1,0 +1,43 @@
+<div id="media_object_list" type="<%=type%>" obj_id="<%=object.id%>">
+  <table id="media_table">
+    <thead>
+      <tr>
+        <th style="max-width:10%">File</th>
+        <th style="max-widht:60%">Name</th>
+        <th style="max-widht:20%px"></th>
+        <th style="max-width:10%px">Display</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% object.media_objects.all.each do |mo| %>
+        <tr class="<%= cycle('feed-even','feed-odd') %> media">
+          <td class="media_icon"><div><%= link_to (media_object_thumbnail_helper mo), media_object_path(mo)  %></div></td>
+          <td style="max-width:140px;"><div class="truncate"><%= link_to mo.name, media_object_path(mo)%></div></td>
+          <td>
+            <div class="controls">
+              <% if can_edit? mo %>
+                <a href="<%= media_object_path mo %>">Edit</a>
+              <% end %>
+              <% if can_delete? mo %>
+                | <a class="media_object_delete" href="<%= media_object_url mo %>" name="<%= mo.title %>">Delete</a>
+              <% end %>
+            </div>
+          </td>
+          <td>
+            <div class="center">
+              <% if ((mo.media_type == "image") && (can_edit? object))%>
+                <input type="checkbox" class="img_selector" name="img_selector" obj_id="<%=object.id%>" <%if object.featured_media_id == mo.id%>checked<%end%> mo_id="<%=mo.id%>"></input>
+              <%end%>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <div class="redactor_file_upload_hidden" style="width:0px;height:0px"></div>
+  <br />
+  <% if can_edit? object %>
+    <div class="center"><button class="btn btn-success" id="redactor_file_upload_btn">Upload Media</button></div>
+  <% end %>
+</div>

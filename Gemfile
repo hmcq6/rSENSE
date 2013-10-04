@@ -6,6 +6,7 @@ gem 'rails', '3.2.13'
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
 
 gem 'sqlite3'
+gem 'pg'
 
 
 # Gems used only for assets and not required
@@ -16,9 +17,17 @@ group :assets do
   gem 'uglifier', '>= 1.0.3'
 end
 
+# Integration testing stuff
+group :development, :test do
+  gem "capybara"
+  gem "selenium-webdriver"
+  gem "launchy"
+end
+
 # Jquery stuff
-gem 'less-rails'
-gem 'less-rails-bootstrap'
+gem 'less', '= 2.3.2'
+gem 'less-rails', '= 2.3.3'
+gem 'less-rails-bootstrap', '= 2.3.3'
 
 gem 'jquery-rails'
 
@@ -29,7 +38,8 @@ gem 'bcrypt-ruby', '~> 3.0.0'
 gem 'jquery-ui-rails'
 
 # Include Twitter bootstrap
-gem 'twitter-bootstrap-rails', '2.1.6'
+gem 'twitter-bootstrap-rails', '2.2.8'
+gem 'execjs'
 gem 'therubyracer', :platforms => :ruby
 
 # Include AWS
@@ -42,11 +52,19 @@ gem 'will_paginate'
 gem "remotipart", "~> 1.0.2"
 
 # Gem for Mongo Mapper
-gem 'mongo_mapper'
-gem 'bson_ext'
+#gem 'mongo_mapper'
+#gem 'bson_ext'
 
 # To allow coffescript views
 gem 'coffeebeans'
 
 # Include newer version of WEBrick
 gem 'webrick', '1.3.1'
+
+gem 'mini_magick'
+
+# Database serialization
+gem 'yaml_db'
+gem 'multi_json'
+
+gem 'roo'

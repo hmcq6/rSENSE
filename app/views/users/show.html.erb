@@ -4,19 +4,25 @@
     <div class="container-fluid well">
       <div class="row-fluid">
         <div class="span12 text-center">
-          <%= image_tag Gravatar.new.url(@user), :style => "border-radius: 8px" %>
+          <%= image_tag Gravatar.new.url(@user), style: "border-radius: 8px", class: "gravatar_img" %>
         </div>
         <div class="span12" style="padding-top:10px;">
           <span class="info_label" style="line-height: 30px;">First Name:</span> 
-          <%= user_edit_helper 'firstname', (can_edit? @user), false, 18 %>
+          <span class="full_width_edit">
+            <%= user_edit_helper 'firstname', (can_edit? @user), false %>
+          </span>
           <br />
           <%if can_edit? @user%>
             <span class="info_label" style="line-height: 30px;">Last Name:</span>
-            <%= user_edit_helper 'lastname', (can_edit? @user), false, 18 %>
+            <span class="full_width_edit">
+              <%= user_edit_helper 'lastname', (can_edit? @user), false%>
+            </span>
             <br />
           <%end%>
           <span class="info_label" style="line-height: 30px;">Username:</span>
-          <%= user_edit_helper 'username', false, false, 18 %>
+          <span class="full_width_edit">
+            <%= user_edit_helper 'username', false, false %>
+          </span>
           <br />
           <span style="line-height: 30px;">Joined <%= time_ago_in_words(@user.created_at)%> ago</span>
           <br />
@@ -27,7 +33,7 @@
     <hr />
     <div class="row">
       <%= render layout: "shared/box", locals: {title: 'Bio', width: '3', unique_id: 'box', should_hide: false } do %>
-        <%= user_redactor_helper(can_edit?(@user), "bio")%>
+        <%= user_redactor_helper(can_edit?(@user), "bio", false, true)%>
       <%end%>
     </div>
   </div>
@@ -48,7 +54,7 @@
           <div id="user_long_bio">
             <%= user_redactor_helper(can_edit?(@user))%>
           </div>
-          <div class="well" id="three_recent">
+          <div class="well word-break" id="three_recent">
             blahblahablhy
           </div>
         </div>
@@ -58,7 +64,7 @@
           <div class="row">
             <div class="span9" style="border: 1px solid #f5f5f5; border-top: 10px; border-left: 0px; border-right: 0px;">
               <input class="form-search input-xxlarge" id="contribution_search" name="search" type="text" x-webkit-speech>
-              <input type="button" class="btn btn-success pull-right" value="Search" id="contribution_search_btn" />
+              <input type="button" class="btn btn-success" value="Search" id="contribution_search_btn" style="margin-left: 7px; margin-bottom: 10px;"/>
             </div>
           </div>
           

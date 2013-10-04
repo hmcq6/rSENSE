@@ -12,11 +12,58 @@
  *= require_tree .
  *= require redactor.css
  *= require jquery.ui.all
+
+ * require jquery.mobile
+
  *= require_self
  *= require highvis.css.scss
+ *= require mobile_slider
  *= require jquery.dataTables.css
  *= require bootstrap-datetimepicker.less
  */
+
+.word-break { word-wrap: break-word; }
+
+body
+{
+  line-height:normal !important;
+}
+
+.truncate 
+{
+  white-space: nowrap;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+.twolines
+{
+  word-wrap: break-word;
+  overflow: hidden;
+  max-height: 2.4em;
+}
+
+div.info_text
+{
+  display: inline-block;
+}
+
+.full_width_edit div.info_text
+{
+  white-space: nowrap;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  
+  max-width: 90%;
+}
+
+.half_width_edit div.info_text
+{
+  white-space: nowrap;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  
+  max-width: 45%;
+}
 
 .invalid { background-color: #FF0000 }
 
@@ -30,9 +77,20 @@
     padding: 0px 0px 5px 0px;
 }
 
-div#login_box
+.modal
 {
+    position:fixed;
+    width:300px;
     display: none;
+    top:46px !important;
+    left:50%;
+    margin-left:-160px;
+    padding: 10px;
+    padding-top: 33px;
+}
+
+label[for=login_user], [for=login_password] {
+  float: left;
 }
 
 input.login_field
@@ -43,7 +101,7 @@ input.login_field
 button.login_button
 {
     float: right;
-    margin: 15px 0px 0px 0px;
+    margin: 15px 0px 0px 10px;
 }
 
 button.cancel_login_button
@@ -124,8 +182,11 @@ div.clear
 
 .info_edit_link, .menu_edit_link
 {
-/*     vertical-align: super; */
-    font-size: 0.75em;
+  .info_edit_link
+  {
+    vertical-align: super;
+  }  
+  font-size: 0.75em;
 }
 
 .info_label
@@ -137,19 +198,19 @@ div.clear
 
 .info_save_link, .menu_save_link
 {
-    vertical-align: super;
-    font-size: 0.75em;
-    display: none;
+//     vertical-align: super;
+//     font-size: 0.75em;
+//     display: none;
 }
 
 input.info_edit_box
 {
-    resize:none;
-    margin:0;
-    padding:0;
-/*     font-size:0.8em; */
-    height:auto;
-    border:0;
+//     resize:none;
+//     margin:0;
+//     padding:0;
+// /*     font-size:0.8em; */
+//     height:auto;
+//     border:0;
 }
 
 .info_text
@@ -175,18 +236,14 @@ input.info_edit_box
   padding: 5px !important;
   margin: 0px !important;
   word-wrap: break-word;
+  font-size: 15px;
+  min-height:200px !important;
 /*   margin: 1px 1px 15px 1px; */
 }
 
 .icon_content
 {
   margin-right: 5px;
-}
-
-.content_icontainer
-{
-  min-height: 19px;
-  text-align: right;
 }
 
 .content_well
@@ -236,7 +293,7 @@ input.object_hidden_checkbox
   border-bottom: 1px solid black;
   width:100%;
   background-color:#113;
-  height:72px;
+  height:50px;
   z-index:2000;
   top:0px;
   left:0px;
@@ -262,7 +319,7 @@ input.object_hidden_checkbox
   position:absolute;
   bottom:0;
   width:100%;
-  height:92px;
+  height:35px;
 }
 
 .visible-tablet, .visible-desktop, .visible-phone
@@ -274,7 +331,6 @@ input.object_hidden_checkbox
 
   
   .pillbox{
-    padding-top:25px;
     line-height:15px;
     font-size:15px;
     float:right;
@@ -295,12 +351,12 @@ input.object_hidden_checkbox
     float: left;
   }
   .search_box{
-    width: 40%;
+    width: 60%;
     float: left;
     margin-left: 20px; 
   }
   .submit_button{
-    width: 20%;
+    //width: 20%;
     float: left;
     margin-left: 40px;
   }
@@ -340,4 +396,152 @@ input.object_hidden_checkbox
 {
   font-size:12px;
   font-weight:normal;
+}
+
+.redactor_box textarea, .redactor_box textarea:focus
+{
+  color: #444;
+}
+
+.projectsCarousel
+{
+  display:inline-block;
+  overflow-x: hidden;
+  height:250px;
+  
+  @media screen and (min-width: 300px) {
+    width: 170px !important;
+  }
+  @media screen and (min-width: 600px) {
+    width: 400px !important;
+  }
+  @media screen and (min-width: 800px) {
+    width: 600px !important;
+  }
+  @media screen and (min-width: 980px) {
+    width: 800px !important;
+  }
+  @media screen and (min-width: 1200px) {
+    width: 1000px !important;
+  }
+}
+
+.carousel-cell
+{
+  width: 240px;
+}
+
+.carousel-arrow
+{
+  font-size: 20pt;
+  text-align:center;
+  color: white;
+  background: #888;
+  border-color: #fff;
+  border-radius: 23px;
+  width:35px;
+  height:35px;
+  display: inline-block;
+  position: relative;
+  top: -110px;
+}
+.carousel-arrow:hover
+{
+  color: white;
+  background: #555;
+}
+
+.navbar-btn
+{
+  line-height:50px;
+  display:inline-block;
+  color: white;
+  position: relative;
+  @media screen and (max-width: 449px) {
+    font-size: 7pt;
+    padding: 1px 5px 0px 5px;
+  }
+  @media screen and (min-width: 450px) {
+    font-size: 9pt;
+    padding: 1px 7px 0px 7px;
+  }
+  @media screen and (min-width: 980px) {
+    font-size: 11pt;
+    padding: 1px 14px 0px 14px;
+  }
+   @media screen and (min-width: 1200px) {
+    font-size: 12pt;
+    padding: 1px 17px 0px 17px;
+  }
+}
+.navbar-btn:hover
+{
+  color:white;
+  background:#649ce5;
+}
+
+.navbar-btn:hover + .ddmenu
+{
+  display: block;
+  position: relative;
+  z-index: -10;
+  @media screen and (max-width: 979px) {
+    font-size: 9pt;
+    left:284px;
+  }
+  @media screen and (min-width: 980px) {
+    font-size: 10pt;
+    left:401px;
+  }
+   @media screen and (min-width: 1200px) {
+    font-size: 11pt;
+    left:447px;
+  }
+}
+
+.ddmenu
+{
+  display:none;
+  background: white;
+  color:black;
+  box-shadow:0px 5px 20px black;
+  width:250px;
+  li
+  { 
+    width:100%;
+    list-style-type: none;
+    a
+    {
+      margin: 0px;
+      color: black;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box; 
+      display: block;
+      padding: 20px;
+    }
+    a:hover
+    {
+      color: white;
+      background:#649ce5;
+    }
+  }
+}
+.ddmenu:hover
+{
+  display: block;
+  position: relative;
+  z-index: -10;
+  @media screen and (max-width: 979px) {
+    font-size: 9pt;
+    left:284px;
+  }
+  @media screen and (min-width: 980px) {
+    font-size: 10pt;
+    left:401px;
+  }
+   @media screen and (min-width: 1200px) {
+    font-size: 11pt;
+    left:447px;
+  }
 }

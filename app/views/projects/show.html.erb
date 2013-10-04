@@ -11,7 +11,7 @@
       <!-- project title -->
       <div class="span5" style="margin-left:0px">
         <div class="project_info_box" >
-          <span id="title_span" style="font-size:2em"><%= project_edit_menu_helper false, 26 %></span><br>
+          <span id="title_span" class="word-break" style="font-size:2em"><%= project_edit_menu_helper false%></span><br>
           <span class="info_label" style="font-size:1.1em">Owner:</span>
           <%= link_to @project.owner.name, user_path(@project.owner) %><br>
             <%if !@cloned_project.nil? %>
@@ -19,92 +19,91 @@
                     <%=link_to @cloned_project.title, project_path(@cloned_project.id)%><br>
             <%end%>
           <span class="info_label" style="font-size:1.1em">Created:</span><%=time_ago_in_words(@project.created_at)%> ago <br>
-          <%=render "likes"%>
+          <span class="info_label" style="font-size:1.1em">Project #:</span><%= @project.id %><br>
+          <%if @cur_user.try(:id)%>
+            <div class="btn-group likes" project_id="<%= @project.id%>">
+              <button type="button" class="btn liked_status <% if @liked_by_cur_user%>active<%end%>" href="#" data-toggle="button"><i class="icon-thumbs-up-alt"></i> Like</button>
+              <button type="button" class="btn like_display" disabled> <%= @likes %></button>
+            </div>
+          <%end%>
         </div>
       </div>
 
-      <!-- project content -->
+      <!-- ##### PROJECT CONTENT/REDACTOR ##### -->
       <%=render layout: "shared/box", locals: {title: 'Description', width: '7', unique_id: 'description', should_hide: false} do %>
-        <%= project_redactor_helper (can_edit? @project), false %>
+        <%= project_redactor_helper (can_edit? @project) %>
       <%end%>
 
 
-      <!-- data sets -->
+      <!-- ##### DATA SETS MENU ##### -->
       <%=render layout: "shared/box", locals: {title: 'Data Sets', width: '7', unique_id: 'data_sets', should_hide: false} do %>
-        <div id="dataset_list" <% if @project.data_sets.count == 0 %> style="display:none;" <% end %> >
+        <div id="dataset_list" <% if @data_sets.count == 0 %> style="display:none;" <% end %> >
+          <table id="dataset_table">
+            <thead>
+              <tr>
+                <th colspan="4"><input type="button" class="btn btn-info" style="margin-bottom: 10px;" value="Visualize" id="vis_button" href="/projects/<%=@project.id%>/data_sets/"/></th>
+                <th>         
+                  <div>
+                    <input type="checkbox" id="check_selector" checked/>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @data_sets.each do |s| %>
+                <tr class="<%= cycle('feed-even', 'feed-odd')%> dataset" style="position:relative">
+                  <td class="gravatar">
+                    <div >
+                      <%if Gravatar.new.url(s.owner, 32) != nil%>
+                        <%= image_tag Gravatar.new.url(s.owner, 32)%>
+                      <%end%>
+                    </div>
+                  </td>
+                  <td style="max-width:60px"><div class="truncate"><%= link_to s.owner.name, user_path(s.owner) %></div></td>
+                  <td style="max-width:200px"><div class="truncate" title="Created <%=s.created_at.strftime("%B %d, %Y")%>"><%= link_to s.title, "#{params[:id]}/data_sets/#{s.id}" %></div></td>
+                  <td>
+                    <div class="controls" style="">
+                       &nbsp;<a class="data_set_export" href="/projects/<%= @project.id %>/export/data_sets/<%= s.id %>">Export</a>
 
-          <div class="text-left">
-            <input type="button" class="btn btn-info" style="margin-bottom: 10px;" value="Visualize" id="vis_button" href="/projects/<%=@project.id%>/data_sets/"/>
-            <div class="pull-right">
-              <input type="checkbox" id="check_selector"/>
-            </div>
-          </div>
+                      <% if can_edit? s %>
+                         &nbsp;<a class="data_set_edit" href="<%= edit_data_set_path s %>">Edit</a>
+                      <% end %>
 
-          <% @project.data_sets.search(false).each do |s| %>
+                      <% if can_hide? s %>
+                          &nbsp;<a class="data_set_hide" href="<%= data_set_url s %>">Hide</a>
+                      <% end %>
 
-            <div class="<%= cycle('feed-even', 'feed-odd')%> dataset" style="position:relative">
-
-              <div class="gravatar">
-                <%if Gravatar.new.url(s.owner, 32) != nil%>
-                  <%= image_tag Gravatar.new.url(s.owner, 32)%>
-                <%end%>
-              </div>
-
-              <div class="links">
-                <div class="owner">
-                  <%= link_to truncate(s.owner.name, length:10), user_path(s.owner) %>
-                </div>
-
-                <div class="title">
-                  <%= link_to truncate(s.title, length:30), "#{params[:id]}/data_sets/#{s.id}" %>
-                </div>
-              </div>
-
-              <div class="control_block">
-
-                <div class="control">
-                  <a class="data_set_export" href="/projects/<%= @project.id %>/export/data_sets/<%= s.id %>">Export</a>
-
-                  <% if can_edit? s %>
-                     | <a class="data_set_edit" href="<%= edit_data_set_path s %>">Edit</a>
-                  <% end %>
-
-                  <% if can_hide? s %>
-                     | <a class="data_set_hide" href="<%= data_set_url s %>">Hide</a>
-                  <% end %>
-
-                  <% if can_delete? s %>
-                     | <a class="data_set_delete" href="<%= data_set_url s %>" name="<%= s.title %>">Delete</a>
-                  <% end %>
-                </div>
-
-                <div class="ds_selector">
-                  <input type="checkbox" class="pull-right" id="ds_<%=s.id%>"/>
-                </div>
-              </div>
-
-            </div>
-          <%end%>
-          <!--<div class="feed-bottom"> </div>-->
+                      <% if can_delete? s %>
+                         &nbsp;<a class="data_set_delete" href="<%= data_set_url s %>" name="<%= s.title %>" style="color:red">Delete</a>
+                      <% end %>
+                    </div>
+                  </td>
+                  <td><div class="ds_selector"><input type="checkbox" class="pull-right" id="ds_<%=s.id%>" checked/></div></td>
+                </tr>
+              <% end %> 
+            </tbody>
+          
+          </table>
         </div>
-    <%end%>
+      <%end%>
+    </div>
   </div>
-  </div>
+  
 
   <div class="span5">
     <div class="row">
-
-      <!-- session creation -->
-      <%=render layout: "shared/box", locals: {title: 'Create Data Set', width:'5', unique_id: 'create_data_set', should_hide: false} do %>
+    
+      <!-- ##### SESSION CREATION MENU ##### -->
+      <%=render layout: "shared/box", locals: {title: 'Create Data Set', width:'5', unique_id: 'create_data_set', should_hide: !(@cur_user.try(:id) && @project.fields.count() > 0)} do %>
       <div class="row-fluid">
         <div class="span4 center">
         <%= link_to :controller => :data_sets, :action => :manualEntry do %>
           <img class="hoverimage" src="/assets/manual.svg" /><br />Manual Entry
         <% end %>
         </div>
-        <div class="span4 center">
+        <div class="span4 center" title="Supports - CSV,XLS,XLSX,ODS">
           <a id="upload_csv" href=""><img class="hoverimage" src="/assets/upload.svg" /><br />
-          Upload CSV</a>
+          Upload File</a>
         </div>
         <div class="span4 center">
           <a id="google_doc" href=""><img class="hoverimage" src="/assets/google.svg" /><br />
@@ -115,43 +114,14 @@
       </div>
       <% end %>
 
-      <!-- field -->
-      <%=render layout: "shared/box", locals: {title: 'Fields',width: '5', unique_id: 'fields', should_hide: false} do %>
-        <table class="table fields_table" project="<%=@project.id%>" style="width:100%; height:125px;">
+      <!-- ##### FIELDS MENU ##### -->
+      <%= render layout: "shared/box", locals: {title: 'Fields', width: '5', unique_id: 'fields', should_hide: false} do%>
+        <table class="fields_table" project="<%=@project.id%>" can_delete_fields="<%if @project.data_sets.count>0%>false<%else%>true<%end%>" data-num_fields="<%=@project.fields.count%>">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Units</th>
-              <th>Type</th>
-              <th>
-
-                <!-- Add field dropdown -->
-                <%if (can_edit? @project) %>
-                  <div class='btn-group' id='add-field-dropdown'>
-                    <a class='btn-mini btn-success dropdown-toggle' data-toggle='dropdown' href='#'>
-                      Add Field
-                      <span class='caret'/>
-                    </a>
-                    <ul class='dropdown-menu'>
-                      <li><a href='#' class=add_timestamp_field> Timestamp </a></li>
-                      <li><a href='#' class=add_number_field> Number </a></li>
-                      <li><a href='#' class=add_text_field> Text </a></li>
-                      <% if (@project.fields.any? {|field| field.field_type == LONGITUDE_TYPE or field.field_type == LATITUDE_TYPE}) %>
-                        <li><a href='#' style="display:none;" class=add_location_field> Location </a></li>
-                      <% else %>
-                        <li><a href='#' class=add_location_field> Location </a></li>
-                      <% end %>
-                    </ul>
-                  </div>
-                <%end%>
-                <% if @project.fields.count == 0 %>
-                  <th id="template_th">
-                    <div class="btn-group">
-                      <a class='btn-mini btn-success dropdown-toggle' id="template-from-file">Template from File</a>
-                    </div>
-                  </th>
-                <%end%>
-              </th>
+              <th style="max-width:30%">Name</th>
+              <th style="max-width:30%">Units</th>
+              <th style="max-width:30%">Type</th>
             </tr>
           </thead>
           <tbody>
@@ -159,46 +129,73 @@
               <!-- Render all the fields, Lat and Lon cant be edited -->
               <%= render 'field_edit', field: f, type: "field", row_id: f.id, can_edit: (can_edit? @project), has_ses: @project.data_sets.count %>
             <% end %>
+            </tr>
           </tbody>
         </table>
-      <%end%>
-
-        <!-- media objects -->
-        <%=render layout: "shared/box", locals: {title: 'Media', width: '5', unique_id: 'media', should_hide: false} do %>
-            <div id="media_object_list"> 
-
-            <span style="font-weight:bold"> File</span><span class="pull-right" style="font-weight:bold">Display</span>
-            <% @project.media_objects.all.each do |mo| %>
-              <div class="<%= cycle('feed-even', 'feed-odd')%> mediaobject" style="position:relative">
-                <div class="media_icon">
-                  <%=media_object_thumbnail_helper(mo)%>
-                </div>
-                <div class="links">
-                  <%= link_to truncate(mo.name, :length => 25), mo.src%>
-                </div>
-                <div class="control_block" style="width:20px">
-                  <div class="control">
-                    <% if ((mo.media_type == "image") && (can_edit? @project))%>
-                      <input type="radio" class="img_selector" name="img_selector" exp_id="<%=@project.id%>" <%if @project.featured_media_id == mo.id%>checked<%end%> mo_id="<%=mo.id%>"></input>
-                    <%end%>
-                  </div>
-                </div>
-                <div class="control_block">
-                  <div class="control">
-                     <% if can_edit? mo %>
-                      <a href="<%= media_object_path mo %>">Edit</a>
-                     <% end %>
-                     <% if can_delete? mo %>
-                     | <a class="media_object_delete" href="<%= media_object_url mo %>" name="<%= mo.title %>">Delete</a>
-                    <% end %>
-                  </div>
-                </div>
-              </div>
-              
-            <%end%>
+        <%if can_edit? @project%>
+          <div class="center fields_edit_option">
+            <button class="edit_fields_btn btn btn-success">Edit</button>
+          </div>
+          <div class="center fields_edit_menu" style="display:none">
+            <div class='btn-group' id='add-field-dropdown'>
+              <a class='btn btn-success dropdown-toggle' data-toggle='dropdown' href='#'>
+                Add Field 
+                <span class='caret'/>
+              </a>
+              <ul class='dropdown-menu'>
+                <li><a href='#' id="add_timestamp_field" > Timestamp </a></li>
+                <li><a href='#' id="add_number_field"> Number </a></li>
+                <li><a href='#' id="add_text_field"> Text </a></li>
+                <% if (@project.fields.any? {|field| field.field_type == LONGITUDE_TYPE or field.field_type == LATITUDE_TYPE}) %>
+                  <li><a href='#' style="display:none;" id="add_location_field"> Location </a></li>
+                <% else %>
+                  <li><a href='#' id="add_location_field"> Location </a></li>
+                <% end %>
+              </ul>
+            </div>
+            <button class="btn btn-success" href="#" id="template_from_file" style=<%= @project.fields.count != 0 ? "display:none" : ""%>>Template from File</button>
+            <button class="save_field_changes_btn btn btn-primary" href="/projects/<%=@project.id%>/updateFields">Save Changes</button>
             
           </div>
         <%end%>
+      <% end %>
+
+      <!-- ##### MEDIA OBJECTS MENU ##### -->
+      <%=render layout: "shared/box", locals: {title: 'Media', width: '5', unique_id: 'media', should_hide: false} do %>
+        <%=render "shared/media_objects_view", {type: 'project', object: @project}%>
+      <%end%>
+            
+        
+      <!-- ##### SAVED VISUALIZATIONS MENU ##### -->
+      <%=render layout: "shared/box", locals: {title: 'Visualizations', width: '5', unique_id: 'visualizations', should_hide: false} do %>
+        <div id="viz_list" <% if @project.visualizations.count == 0 %> style="display:none;" <% end %> >
+          <table id="viz_table">
+            <thead>
+              <tr><th>Name</th><th></th></tr>
+            </thead>
+            <tbody>
+              <% @project.visualizations.search(false).each do |vis|%>
+                <tr class="<%= cycle('feed-even', 'feed-odd')%> vis">
+                  <td style="max-width:200px" >
+                    <div class="truncate"><%= link_to vis.title, visualization_url(vis) %></div>
+                  </td>
+                  <td>
+                    <div class="controls" style="float:right">
+                      <% if can_hide? vis %>
+                        <a class="viz_hide" href="<%= visualization_url vis %>">Hide</a>
+                      <% end %>
+                      <% if can_delete? vis %>
+                         | <a class="viz_delete" href="<%= visualization_url vis %>" name="<%= vis.title %>">Delete</a>
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>  
+        </div>
+      <%end%>
+      
     </div>
   </div>
 </div>
@@ -210,16 +207,20 @@
   <iframe id="upload_target" name="upload_target" src="" style="width:100%;height:100;border:0px solid #fff;"></iframe>
 </div>
 
-<div id="doc_box" class="modal hide fade well container" style="width:400px">
-  <div>Share URL: <input id="doc_url" class="login_field" type="text" style="width:75%"></input></div><div class="clear"></div>
+<div id="doc_box" class="modal hide fade well container">
+  <div>
+    Please enter the Google Drive link to share below:
+  </div> 
+  <input id="doc_url" class="login_field" type="text" style="width:95%"></input>
+  <div class="clear"> </div>
   <div style="float:right;">
       <button id="save_doc" class="login_button btn btn-success">Save</button>
-      <button id="cancel_doc" class="cancel_login_button btn" style="margin:15px 10px 0px 0px">Cancel</button>
+      <button id="cancel_doc" class="cancel_login_button btn btn-danger" style="margin:15px 0px 0px 0px">Cancel</button>
   </div>
 </div>
 
 <!-- Field matching Modal Box -->
-<div id="match_box" class="modal hide fade well container" style="width:400px">
+<div id="match_box" class="modal hide fade well container">
   <p>
     We were unable to automatically match up your CSV headers with the project fields. Below is our best guess - please correct it with the dropdown boxes before continuing.
   </p>
@@ -228,27 +229,28 @@
 
   <div style="float:right;">
     <button class="finished_button btn btn-success"> Finished </button>
-    <button class="cancel_upload_button btn" style="margin:15px 10px 0px 0px"> Cancel Upload </button>
+    <button class="cancel_upload_button btn btn-danger" style="margin:15px 0px 0px 0px"> Cancel Upload </button>
   </div>
 </div>
 
 <div style="display:none">
-  <%= form_tag "./#{@project.id}", multipart: true, id: 'template_file_form', target: "upload_target" do %>
+  <%= form_tag "/projects/#{@project.id}/CSVUpload", multipart: true, id: 'template_file_form', 
+                target: "upload_target" do %>
     <%= file_field_tag 'csv', id: 'template_file_input' %>
   <% end %>
   <iframe id="upload_target" name="upload_target" src="" style="width:100%;height:100;border:0px solid #fff;"></iframe>
 </div>
 
 <!-- Field Templating Modal Box -->
-<div id="template_match_box" class="modal hide fade well container" style="width:400px">
+<div id="template_match_box" class="modal hide fade well container">
   <p>
-    We were unable to automatically match up your CSV headers with the project fields. Below is our best guess - please correct it with the dropdown boxes before continuing.
+    Please finish the template processing by telling us the type of each of your fields.
   </p>
 
   <table id="template_match_table"> </table>
 
   <div style="float:right;">
     <button class="finished_button btn btn-success"> Finished </button>
-    <button class="cancel_upload_button btn" style="margin:15px 10px 0px 0px"> Cancel Upload </button>
+    <button class="cancel_upload_button btn btn-danger" style="margin:15px 0px 0px 0px"> Cancel Upload </button>
   </div>
 </div>

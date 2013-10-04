@@ -1,9 +1,10 @@
 $ = jQuery
 
 $ ->
+   
   # Only allows the plugin to run on certain pages. Probably not the right place to do this.
   if (namespace.controller is "data_sets") and (namespace.action is "manualEntry" or namespace.action is "edit")
-
+ 
     #-----------------------------------------------------------------------
     # Map Specific Code
     #-----------------------------------------------------------------------
@@ -87,8 +88,33 @@ $ ->
           success: (data, textStatus, jqXHR) ->
             window.location = data.redirect
           error: (jqXHR, textStatus, errorThrown) ->
+            ($ '#edit_table_add').removeClass 'disabled'
+            ($ '#edit_table_save').button 'reset'
             log [textStatus, errorThrown]
             alert "An upload error occured."
+            
+        type: (field) ->
+          if field is 1
+            "Timestamp"
+          else if field is 2
+            "Number"
+          else if field is 3
+            "Text"
+          else if field is 4
+            "Longitude"
+          else if field is 5
+            "Latitude"
+            
+          else if field is "Timestamp"
+            1
+          else if field is "Number"
+            2
+          else if field is "Text"
+            3
+          else if field is "Longitude"
+            4
+          else if field is "Latitude"
+            5
         debug: true
 
       settings = $.extend settings, options
@@ -96,38 +122,61 @@ $ ->
       log = (msg) ->
         console?.log msg if settings.debug
 
-      return @each ()->
+      return @each () =>
 
         ### START ###
         # variable to keep track of our table
 
         table = @
-
-        # separate columns by field type/validator
-
+        
         num_cols = []
         lat_cols = []
         lon_cols = []
         text_cols = []
         time_cols = []
 
-        ($ table).find('th').each (index) ->
-          type = ($ @).attr 'data-field-type'
+        #Enter events to add new row or go to begining of next row.
+        ($ @).on 'keypress', 'input', (event) ->
+          code = if event.keyCode then event.keyCode else event.which
+          if code == 13
+            cur_index = ($ event.target).closest('tr')[0].rowIndex
+            last_index = table.find('tr:last')[0].rowIndex
+            if cur_index == last_index
+              add_row(table)
+            table.find("tr:nth-child(#{cur_index+1})").find('input:first').select()
 
-          switch type
-            when "Timestamp" then time_cols.push index
-            when "Text" then text_cols.push index
-            when "Number" then num_cols.push index
-            when "Latitude" then lat_cols.push index
-            when "Latitude" then add_map()
-            when "Longitude" then lon_cols.push index
+        
+        update_headers = () ->
+          # separate columns by field type/validator
+
+          num_cols = []
+          lat_cols = []
+          lon_cols = []
+          text_cols = []
+          time_cols = []
+
+          ($ table).find('th').each (index) ->
+            type = ($ @).attr 'data-field-type'
+  
+            switch type
+              when "Timestamp" then time_cols.push index
+              when "Text" then text_cols.push index
+              when "Number" then num_cols.push index
+              when "Latitude" then lat_cols.push index
+              when "Latitude" then add_map()
+              when "Longitude" then lon_cols.push index
 
         ### FUNCTIONS ###
+        
+        update_headers()
 
         remove_row = (row) ->
           ($ row).closest('tr').remove()
 
         add_validators = (row) ->
+          row = ($ row).closest('tr')
+          
+          update_headers()
           # attach validators
           for col in num_cols
             do (col) ->
@@ -139,19 +188,30 @@ $ ->
 
           for col in lon_cols
             do (col) ->
-              ($ row).children().eq(col).find('input').replaceWith "<div class='input-append'><input class='validate_longitude input-small' id='appendedInput' type='text' value='#{ ($ row).find('input').eq(col).val() }' /><span class='add-on'><a href='#' ><i class='icon-globe map_picker'></i></a></span></div>"
-
+              ($ row).children().eq(col).find('input').replaceWith "<div class='input-append'><input class='validate_longitude input-small' id='appendedInput' type='text' value='#{ ($ row).find('input').eq(col).val() }' /><span class='add-on'><a href='#' tabindex='32767'><i class='icon-globe map_picker'></i></a></span></div>"
+              ($ row).children().eq(col).find('.map_picker').unbind().click ->
+                ($ this).closest("tr").addClass('target')
+                previous_lon = ($ this).closest('tr').find('.validate_longitude').val()
+                previous_lat = ($ this).closest('tr').find('.validate_latitude').val()
+                if (previous_lat != "") and (previous_lon != "")
+                  location = new google.maps.LatLng(previous_lat, previous_lon)
+                  window.marker.setPosition(location)
+                  window.map.setCenter(location)
+                  ($ '#address').val("")
+                ($ '#map_picker').modal()
+                
           for col in text_cols
             do (col) ->
               ($ row).children().eq(col).find('input').addClass 'validate_text'
 
           for col in time_cols
             do (col) ->
-              ($ row).children().eq(col).find('input').replaceWith "<div class='input-append datepicker'><input class='validate_timestamp input-small' type='text' data-format='yyyy/MM/dd hh:mm:ss' value='#{ ($ row).find('input').eq(col).val() }' /><span class='add-on'><a href='#'><i class='icon-calendar'></i></a></span></div>"
-
+              ($ row).children().eq(col).find('input').replaceWith "<div class='input-append datepicker'><input class='validate_timestamp input-small' type='text' data-format='yyyy/MM/dd hh:mm:ss' value='#{ ($ row).find('input').eq(col).val() }' /><span class='add-on'><a href='#' tabindex='32767'><i class='icon-calendar'></i></a></span></div>"
+              ($ row).children().eq(col).find('.datepicker').unbind().datetimepicker()
+              
 
         add_row = (tab) ->
-
+ 
           # create a string of the new row
           new_row = "<tr class='new_row'>"
 
@@ -172,7 +232,7 @@ $ ->
 
           # bind map button
           ($ '.new_row').find('.map_picker').click ->
-            ($ this).closest("tr").addClass('target')
+            ($ @).closest("tr").addClass('target')
             previous_lon = ($ this).closest('tr').find('.validate_longitude').val()
             previous_lat = ($ this).closest('tr').find('.validate_latitude').val()
             if (previous_lat != "") and (previous_lon != "")
@@ -180,7 +240,7 @@ $ ->
               window.marker.setPosition(location)
               window.map.setCenter(location)
               ($ '#address').val("")
-            ($ '#map_picker').modal();
+            ($ '#map_picker').modal()
             
           # bind time to input
           ($ '.new_row').find('.datepicker').datetimepicker()
@@ -212,10 +272,128 @@ $ ->
 
           ($ tab).find('tr').each ->
             add_validators ($ @)
+            
+          ($ tab).find("td:first").find("input").focus()
 
+        submit_form = () =>
+        
+          strip_table(table)
+
+          # collect data and ship it off via AJAX
+          head = []
+
+          ($ table).find('th').each ->
+            head.push ($ @).data('field-id')
+            
+          row_data = []
+
+          ($ table).find('tr').has('td').each ->
+
+            row = []
+
+            ($ @).children().each ->
+              row.push ($ @).text()
+                              
+            row_blank = true
+              
+            ($ @).children().each (index, element) ->
+              if( row[index]? and row[index] != "" )
+                row_blank = false
+
+            if !row_blank
+              row_data.push row
+
+          table_data = for tmp, col_i in row_data[0]
+            tmp = for row, row_i in row_data
+              row[col_i]
+
+          ajax_data =
+            headers: head
+            data: table_data
+
+          ($ '#edit_table_add').addClass 'disabled'
+          ($ '#edit_table_save').button 'loading'
+
+          $.ajax
+            url: "/projects/#{($ table).data('project-id')}"
+            type: "GET"
+            dataType: "json"
+            success: (data, textStatus, jqXHR) ->
+              local = []
+              remote = []
+              add_fields = []
+              field_deleted = false
+              dup = []
+                              
+              $(data.fields).each (i, e) ->
+                remote.push e.id
+              local = ajax_data.headers
+              
+              ($ remote).each (index, field) ->
+                if !(field in local)
+                  add_fields.push( data.fields[index] )
+                                        
+              ($ local).each (index, field) ->
+                if !(field in remote)
+                  field_deleted = true
+                  
+              if field_deleted
+                alert "The project owner deleted a field/fields while you were entering data. Unfortunately we must refresh the page (losing data) to correct the fields."
+                location.reload true
+
+              if add_fields.length == 0
+               
+                $.ajax "#{settings.upload.url}",
+                  type: "#{settings.upload.method}"
+                  dataType: 'json'
+                  data: ajax_data
+                  error: settings.upload.error
+                  success: settings.upload.success
+                  
+              else
+              
+                alert "The project owner added a field/fields while you were entering data. We are adding these new fields for you now, press save again to submit data with the new fields."
+                    
+                ($ add_fields).each (index, element) ->
+                  ($ table).find('thead tr').eq(0).append("<th data-field-type='#{settings.type(element.type)}' data-field-id='#{element.id}' data-field-name='#{element.name}'>#{element.name}</th>")
+                ($ table).find('tbody').find('tr').each (i, e) ->
+                  ($ add_fields).each () ->
+                    ($ e).append('<td></td>')
+                 
+                wrap_table(table)
+                      
+                # add buttons
+                for button in settings.buttons
+                  do (button) ->
+                    if button is "close" or button is "Close"
+                      ($ table).find('tr').eq(0).append '<th></th>'
+                      ($ table).find('tbody').children().each ->
+                        ($ @).append '<td><div class="text-center"><a class="close" style="float:none;">&times;</a></div></td>'
+                        ($ @).find('.close').click () ->
+                          remove_row(@)
+          
+                    if button is "add" or button is "Add"
+                      ($ '#edit_table_add').removeClass 'disabled'
+          
+                    if button is "save" or button is "Save"
+                      ($ '#edit_table_save').button 'reset'
+                      ($ '#edit_table_save').click submit_form
 
         # does it pass?
         table_validates = (tab) ->
+        
+          #Check for zero rows
+          if ($ tab).find('td').has('.input-small').length == 0
+            alert "You must enter at least one row of data."
+            return false
+            
+          # Check that there is at least one value
+          noInput = true
+          ($ tab).find('td').has('.input-small').each ->
+              noInput = noInput and (($ @).find('.input-small').val() == "")
+          if noInput
+            alert "You must enter at least one item of data."
+            return false
 
           if ($ 'input').hasClass 'invalid'
             false
@@ -234,6 +412,10 @@ $ ->
         ($ table).find('th').each ->
           ($ @).html "<div class='text-center'>#{($ @).text()}</div>"
 
+        button_container = ($ '.edit_table_control')
+        if button_container.length == 0
+          button_container = ($ '#edit_table_control')
+          
         # add buttons
         for button in settings.buttons
           do (button) ->
@@ -243,10 +425,10 @@ $ ->
                 ($ @).append '<td><div class="text-center"><a class="close" style="float:none;">&times;</a></div></td>'
 
             if button is "add" or button is "Add"
-              ($ '#edit_table_control').append "<button id='edit_table_add' class='btn btn-success' style='margin-right:10px;'>Add Row</button>"
+              button_container.append "<button id='edit_table_add' class='btn btn-success' style='margin-right:10px;'>Add Row</button>"
 
             if button is "save" or button is "Save"
-              ($ '#edit_table_control').append "<button id='edit_table_save' class='btn btn-primary'>Save</button>"
+              button_container.append "<button id='edit_table_save' class='btn btn-primary' data-loading-text='Saving...' autocomplete='off' >Save</button>"
 
         # if control panel is empty get rid of it
         if ($ '#edit_table_control').html() is ""
@@ -291,41 +473,10 @@ $ ->
             
             ($ '#edit_table_save').unbind()
 
-            strip_table(table)
-
             if settings.upload.ajaxify is true
+              
+              submit_form()
 
-              # collect data and ship it off via AJAX
-              head = []
-
-              ($ table).find('th').each ->
-                head.push ($ @).text()
-
-              row_data = []
-
-              ($ table).find('tr').has('td').each ->
-
-                row = []
-
-                ($ @).children().each ->
-                  row.push ($ @).text()
-
-                row_data.push row
-
-              table_data = for tmp, col_i in row_data[0]
-                tmp = for row, row_i in row_data
-                  row[col_i]
-
-              ajax_data =
-                headers: head
-                data: table_data
-
-              $.ajax "#{settings.upload.url}",
-                type: "#{settings.upload.method}"
-                dataType: 'json'
-                data: ajax_data
-                error: settings.upload.error
-                success: settings.upload.success
 
             else
               ## I guess I'm not gonna write this part because we only use ajax to submit data

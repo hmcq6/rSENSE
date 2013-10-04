@@ -2,47 +2,53 @@
   window.data = <%= raw @Data.to_json %>;
 </script>
 <script type="text/javascript"
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxtPK1_mxwVdl1NRu7ZEiSNvmCekFSZAw&sensor=false&libraries=visualization&v=3.9">
+      src="https://maps-api-ssl.google.com/maps/api/js?key=AIzaSyBxtPK1_mxwVdl1NRu7ZEiSNvmCekFSZAw&sensor=false&libraries=visualization&v=3.9">
 </script>
 
-<div class="row" id="title_row" style="margin-left: 0px; margin-top:20px">
-    <span id="title_span" style="font-size:2em;">
-    <%=visualization_edit_menu_helper false, 64%></span><br><br>
+<div class="row print" id="print_title">
+  <span class="viz_title">Title: <%= @visualization.title %></span><br/>
+  <span class="viz_title">Project: <%= @visualization.project.title %></span><br/>
+  <span class="viz_title">Name: <%= @visualization.owner.name %></span><br/><br/>
+</div>
+
+<div id="title_row" class="row visualization_title" style="margin-left: 0px; margin-top:20px; ">  
+  <div style="margin-left:12px;">  
+    <span class="half_width_edit" id="title_span" style="font-size:2em">
+      <%=visualization_edit_menu_helper false %>
+    </span>
+    <span><b>Project:</b> <%=link_to @visualization.project.title, project_path(@visualization.project)%></span></br>
+    <span><b>Owner:</b> <%= link_to @visualization.owner.name, user_path(@visualization.owner)%></span>
+    <br><br>
+  </div>
 </div>
 
 <div style="margin: 0px 10px;">
 
-    <div id="viscontainer" style="height:500px;">
+  <div id="viscontainer" style="height:500px;">
 
-        <ul id='visTabList'>
-        </ul>
+    <ul id='visTabList'></ul>
+    <div id="map_canvas" class="vis_canvas"></div>
+    <div id="table_canvas" class="vis_canvas"></div>
+    <div id="timeline_canvas" class="vis_canvas"></div>
+    <div id="scatter_canvas" class="vis_canvas"></div>
+    <div id="bar_canvas" class="vis_canvas"></div>
+    <div id="histogram_canvas" class="vis_canvas"></div>
+    <div id="motion_canvas" class="vis_canvas"></div>
+    <div id="photos_canvas" class="vis_canvas"></div>
 
-
-        <div id="map_canvas" class="vis_canvas"></div>
-        <div id="table_canvas" class="vis_canvas"></div>
-        <div id="timeline_canvas" class="vis_canvas"></div>
-        <div id="scatter_canvas" class="vis_canvas"></div>
-        <div id="bar_canvas" class="vis_canvas"></div>
-        <div id="histogram_canvas" class="vis_canvas"></div>
-        <div id="motion_canvas" class="vis_canvas"></div>
-        <div id="photos_canvas" class="vis_canvas"></div>
-
-        <div id='controlhider'>
-            <button id="control_hide_button" type="button" style="margin:5px;"> > </button>
-        </div>
-        <div id="controldiv"></div>
+    <div id='controlhider'>
+      <button id="control_hide_button" type="button" style="margin:5px;"> </button>
+    </div>
+    <div id="controldiv"></div>
 
   </div>
 
-  <div class="" id="tabcontainer">
-    <ul class="nav nav-tabs" id="myTab">
-      <li class="dataset_tab"><a href="#<%=@visualization.id%>">
-        <%= visualization_edit_helper 'title', @visualization.owner.id == @cur_user.try(:id), make_link = false %>
-      </a></li>
-    </ul>
-    <div class="tab-pane" id="<%=@visualization.id%>">
-      <%= visualization_redactor_helper (@visualization.owner.id == @cur_user.try(:id)) %>
-    </div>
+  <div class="well" style="margin-top:10px">
+
+    <div class="full_width_edit" style="font-size:1.5em;"><%= visualization_edit_helper 'title', @visualization.owner.id == @cur_user.try(:id), make_link = false %></div>
+    
+    <%= visualization_redactor_helper (@visualization.owner.id == @cur_user.try(:id)) %>
+    
   </div>
 
 

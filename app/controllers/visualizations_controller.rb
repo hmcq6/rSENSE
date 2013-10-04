@@ -2,7 +2,7 @@ class VisualizationsController < ApplicationController
   include ApplicationHelper
   include ActionView::Helpers::DateHelper
   
-  skip_before_filter :authorize, only: [:show, :displayVis, :index,:embedVis]
+  skip_before_filter :authorize, only: [:show, :displayVis, :index, :embedVis]
   
   # GET /visualizations
   # GET /visualizations.json
@@ -46,28 +46,34 @@ class VisualizationsController < ApplicationController
     @Data = { savedData: @visualization.data, savedGlobals: @visualization.globals }
 
     recur = params.key?(:recur) ? params[:recur].to_bool : false
-
+    
+    options = {}
+    
+    # Detect presentation mode (and force embed)
+    if params.try(:[], :presentation) and params[:presentation]
+      @presentation = true
+      options[:presentation] = 1
+      params[:embed] = true
+    else
+      @presentation = false
+    end
+    
     respond_to do |format|
-      format.html { render :layout => 'applicationWide' }
+      format.html do
+        if params.try(:[], :embed) and params[:embed]
+          options[:isEmbed] = 1
+          options[:startCollapsed] = 1
+          @Globals = { options: options }
+          render 'embed', :layout => 'embedded'
+        else
+          @layout_wide = true
+          render
+        end
+      end
       format.json { render json: @visualization.to_hash(recur) }
     end
   end
 
-  # GET /visualizations/1/embeded
-  def embedVis
-    @visualization = Visualization.find(params[:id])
-    @project = Project.find_by_id(@visualization.project_id)
-
-    # The finalized data object
-    @Data = { savedData: @visualization.data, savedGlobals: @visualization.globals }
-    @Globals = { options: {startCollasped: 1, isEmbed: 1} }
-
-    respond_to do |format|
-      format.html {render :layout => 'embeded' }
-    end
-  end
-
-  # GET /visualizations/1/edit
   def edit
     @visualization = Visualization.find(params[:id])
   end
@@ -76,6 +82,44 @@ class VisualizationsController < ApplicationController
   # POST /visualizations.json
   def create
     params[:visualization][:user_id] = @cur_user.id
+    
+    # Remove any piggybacking updates
+    if params[:visualization].try(:[], :tn_file_key)
+      params[:visualization].delete :tn_file_key
+    end
+    if params[:visualization].try(:[], :tn_src)
+      params[:visualization].delete :tn_src
+    end
+    
+    #Try to make a thumbnail
+    if params[:visualization].try(:[], :svg)
+      begin
+        image = MiniMagick::Image.read(params[:visualization][:svg], '.svg')
+        image.format 'png'
+        image.resize '128'
+        
+        s3ConfigFile = YAML.load_file('config/aws_config.yml')
+        s3 = AWS::S3.new(
+          :access_key_id => s3ConfigFile['access_key_id'],
+          :secret_access_key => s3ConfigFile['secret_access_key'])
+      
+        bucket = s3.buckets['isenseimgs']
+        fileKey = SecureRandom.uuid() + ".svg"
+        while Visualization.find_by_tn_file_key(fileKey) != nil
+          fileKey = SecureRandom.uuid() + ".svg"
+        end
+        o = bucket.objects[fileKey]
+        o.write image.to_blob
+        
+        params[:visualization][:tn_file_key] = fileKey
+        params[:visualization][:tn_src] = o.public_url.to_s
+        
+      rescue MiniMagick::Invalid => err
+        logger.info "Failed to create thumbnail."
+      end
+      params[:visualization].delete :svg
+    end
+    
     @visualization = Visualization.new(params[:visualization])
 
     respond_to do |format|
@@ -94,7 +138,7 @@ class VisualizationsController < ApplicationController
   # PUT /visualizations/1.json
   def update
     @visualization = Visualization.find(params[:id])
-    editUpdate  = params[:visualization].to_hash
+    editUpdate  = params[:visualization]
     hideUpdate  = editUpdate.extract_keys!([:hidden])
     adminUpdate = editUpdate.extract_keys!([:featured])
     success = false
@@ -150,7 +194,7 @@ class VisualizationsController < ApplicationController
       @visualization.save
       
       respond_to do |format|
-        format.html { redirect_to visualizaions_url }
+        format.html { redirect_to visualizations_url }
         format.json { render json: {}, status: :ok }
       end
     else
@@ -178,23 +222,20 @@ class VisualizationsController < ApplicationController
     if( !params[:datasets].nil? )
       
       dsets = params[:datasets].split(",")
-      dsets.each do |s|
+      dsets.each do |id|
         begin
-          @datasets.push DataSet.find_by_id_and_project_id s, params[:id]
+          dset = DataSet.find_by_id(id.to_i)
+          if dset.project_id == @project.id
+            @datasets.push dset
+          end
         rescue
           logger.info "Either project id or dataset does not exist in the DB"
         end
       end
     else
-      @datasets = DataSet.find_all_by_project_id params[:id]
+      @datasets = DataSet.find_all_by_project_id(params[:id], :conditions => {hidden: false})
     end
     
-    # get data for each dataset    
-    @datasets.each do |dataset|
-      d = MongoData.find_by_data_set_id(dataset.id)
-      dataset[:data] = d.data
-    end
-
     # create special dataset grouping field
     data_fields.push({ typeID: TEXT_TYPE, unitName: "String", fieldID: -1, fieldName: "Dataset Name (id)" })
     # create special grouping field for all datasets
@@ -211,13 +252,18 @@ class VisualizationsController < ApplicationController
     @datasets.each do |dataset|
       hasPics = true if dataset.media_objects.size > 0
       metadata[i] = { name: dataset.title, user_id: dataset.user_id, dataset_id: dataset.id, timecreated: dataset.created_at, timemodified: dataset.updated_at, photos: dataset.media_objects }
-      dataset.data.each do |rows|
+      dataset.data.each do |row|
+        unless row.class == Hash
+          logger.info "Bad row in JSON data:"
+          logger.info row.inspect
+        end
+
         arr = []
         arr.push "#{dataset.title}(#{dataset.id})"
         arr.push "All"
 
-        rows.each do |dp|
-          arr.push dp[1]
+        data_fields.slice(2, data_fields.length).each do |field|
+          arr.push row[field[:fieldID].to_s]
         end
         format_data.push arr
       end
@@ -265,10 +311,30 @@ class VisualizationsController < ApplicationController
 
     # The finalized data object
     @Data = { projectName: @project.title, projectID: @project.id, fields: data_fields, dataPoints: format_data, metadata: metadata, relVis: rel_vis, allVis: allVis }
+
+    options = {}
     
+    # Detect presentation mode (and force embed)
+    if params.try(:[], :presentation) and params[:presentation]
+      @presentation = true
+      options[:presentation] = 1
+      params[:embed] = true
+    else
+      @presentation = false
+    end
     
     respond_to do |format|
-      format.html {render :layout => 'applicationWide' }
+      format.html do
+        if params.try(:[], :embed) and params[:embed]
+          options[:isEmbed] = 1
+          options[:startCollapsed] = 1
+          @Globals = { options: options }
+          render 'embed', :layout => 'embedded'
+        else
+          @layout_wide = true
+          render
+        end
+      end
     end
   end
   

@@ -1,15 +1,27 @@
 class DataSet < ActiveRecord::Base
   
-  attr_accessible :content, :project_id, :title, :user_id, :hidden
+  include ActionView::Helpers::SanitizeHelper
+  
+  attr_accessible :content, :project_id, :title, :user_id, :hidden, :data
+  serialize :data, JSON
   
   validates_presence_of :project_id, :user_id, :title
+  
+  validates :title, length: {maximum: 128}
   
   has_many :media_objects
   
   belongs_to :project
-  belongs_to :owner, class_name: "User", foreign_key: "user_id"
+  belongs_to :user
   
   alias_attribute :name, :title
+  alias_attribute :owner, :user
+  
+  before_save :sanitize_data_set
+  
+  def sanitize_data_set
+    self.title = sanitize self.title, tags: %w()
+  end
   
   def self.search(search, include_hidden = false)
     res = if search
@@ -25,41 +37,16 @@ class DataSet < ActiveRecord::Base
     end
   end
   
-  def self.upload_form(header, datapoints, cur_user, project, name = nil)
-    if name == nil
-      name = "#{cur_user.name}'s Session"
-    end
-    
-    if !datapoints.nil?     
-      data_set = DataSet.create(:user_id => cur_user.id, :project_id => project.id, :title => name)
-
-      mongo_data = []
-      
-      datapoints.each do |dp|
-        row = {}
-        header.each_with_index do |field, col_index|
-          row["#{field[1][:id]}"] = dp[1][col_index]
-        end
-        mongo_data << row
-      end
-      
-      MongoData.create( data_set_id: data_set.id, data: mongo_data)
-    end
-    
-    return data_set.id
-  end
-  
   def to_hash(recurse = true)
-    data = MongoData.find_by_data_set_id(self.id)
-        
     h = {
       id: self.id,
       name: self.title,
       hidden: self.hidden,
       url: UrlGenerator.new.data_set_url(self),
+      path: UrlGenerator.new.data_set_path(self),
       createdAt: self.created_at.strftime("%B %d, %Y"),
       fieldCount: self.project.fields.length,
-      datapointCount: data[:data].length
+      datapointCount: data.length
     }
     
     if recurse
@@ -69,16 +56,6 @@ class DataSet < ActiveRecord::Base
         fieldIndices[field[:id].to_s] = i
       end
       
-      newDataHolder = []
-      data[:data].each do |inner|
-        newDataRow = Hash.new
-        inner.each_key do |key|
-          newDataRow[fieldIndices[key]] = inner[key]
-        end
-        newDataHolder.push(newDataRow)
-      end
-      data[:data] = newDataHolder
-    
       h.merge! ({
         owner: self.owner.to_hash(false),
         project: self.project.to_hash(false),

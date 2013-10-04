@@ -50,17 +50,28 @@ class TutorialsController < ApplicationController
   # POST /tutorials
   # POST /tutorials.json
   def create
-    @tutorial = Tutorial.new({user_id: @cur_user.id, title: "#{@cur_user.name}'s Tutorial"})
-
-    respond_to do |format|
-      if @tutorial.save
-        format.html { redirect_to @tutorial, notice: 'Tutorial was successfully created.' }
-        format.json { render json: @tutorial.to_hash(false), status: :created, location: @tutorial }
-      else
-        format.html { render action: "new" }
-        format.json { render json: @tutorial.errors, status: :unprocessable_entity }
+    
+    if is_admin?
+      @tutorial = Tutorial.new({user_id: @cur_user.id, title: "#{@cur_user.name}'s Tutorial"})
+      respond_to do |format|
+        if @tutorial.save
+          format.html { redirect_to @tutorial, notice: 'Tutorial was successfully created.' }
+          format.json { render json: @tutorial.to_hash(false), status: :created, location: @tutorial }
+        else
+          format.html { render :status => 404 }
+          format.json { render json: @tutorial.errors, status: :unprocessable_entity }
+        end
+      end
+    else
+      respond_to do |format|
+        format.html { render :status => 404 }
+        format.json { render json: @tutorial.errors, status: :forbidden }
       end
     end
+  end
+
+  def edit
+    @tutorial = Tutorial.find(params[:id])
   end
 
   # PUT /tutorials/1
@@ -128,30 +139,33 @@ class TutorialsController < ApplicationController
   # /tutorials/switch/
   # Switches between which tutorials are featured
   def switch
+    new_tutorial = Tutorial.find(params[:tutorial])
+    old_tutorial = Tutorial.where("featured_number = ?",params[:selected]).first || nil
 
-    new_tutorial = Tutorial.find_by_id(params[:selected].to_i)
-    old_tutorial = Tutorial.where("featured_number = ?",params[:location]).first || nil
-    
-    if can_admin(new_tutorial) && can_admin(old_tutorial)
-      #Set the old tutorials featured number to nil if necessary
+    if can_admin?(new_tutorial) && (old_tutorial.nil? || can_admin?(old_tutorial))
       if !(old_tutorial == nil)
         old_tutorial.featured_number = nil
         old_tutorial.save
       end
       
-      #Update the featured number for the selected tutorial
-      new_tutorial.featured_number = featured_value.to_i    
-      new_tutorial.save
+      new_tutorial.featured_number = params[:selected].to_i    
       
-      respond_to do |format|
-        format.json { render json: {}, status: :ok }
+      if new_tutorial.save
+        respond_to do |format|
+          format.json { render json: {}, status: :ok }
+        end
+      else
+        logger.info "Apparently that tutorial isn't good enough"
+        logger.info new_tutorial.errors
+        respond_to do |format|
+          format.json {render json: new_tutorial.errors, status: :unprocessable_entity}
+        end
       end
     else
       respond_to do |format|
+        logger.info "Sorry, your face can't switch tutorials"
         format.json { render json: {}, status: :forbidden }
       end
     end
-    
-    
   end
 end

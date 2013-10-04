@@ -1,3 +1,5 @@
+require 'base64'
+
 class UsersController < ApplicationController
   skip_before_filter :authorize, only: [:new, :create, :validate]
  
@@ -71,7 +73,7 @@ class UsersController < ApplicationController
       page_size = params[:page_size].to_i
     end
     
-    show_hidden = @cur_user.id == @user.id
+    show_hidden = (@cur_user.id == @user.id) || can_admin?(@user)
     
     #Only grab the contributions we are currently interested in
     if !@filters.empty?
@@ -185,6 +187,7 @@ class UsersController < ApplicationController
         format.html { redirect_to @user, notice: 'User was successfully created.' }
         format.json { render json: @user.to_hash(false), status: :created, location: @user }
       else
+        flash[:debug] = @user.errors.inspect
         format.html { render action: "new" }
         format.json { render json: @user.errors, status: :unprocessable_entity }
       end
@@ -195,7 +198,7 @@ class UsersController < ApplicationController
   # PUT /users/1.json
   def update
     @user = User.find_by_username(params[:id])
-    editUpdate = params[:user].to_hash
+    editUpdate = params[:user]
     hideUpdate = editUpdate.extract_keys!([:hidden])
     success = false
     
@@ -262,6 +265,7 @@ class UsersController < ApplicationController
       end
     else
       respond_to do |format|
+        flash[:debug] = "Failed can_delete?"
         format.html { redirect_to 'public/401.html' }
         format.json { render json: {}, status: :forbidden }
       end
@@ -270,7 +274,9 @@ class UsersController < ApplicationController
 
   # GET /users/validate/:key
   def validate
-    @user = User.find_by_validation_key(params[:key])
+    key = Base64.decode64(params[:key])
+    
+    @user = User.find_by_validation_key(key)
 
     if @user == nil or params[:key].blank?
       render "public/404.html"

@@ -12,7 +12,7 @@ class ProjectsController < ApplicationController
     if !params[:sort].nil?
         sort = params[:sort]
     else
-        sort = "DESC"
+        sort = "created_at DESC"
     end
     
     if !params[:per_page].nil?
@@ -20,7 +20,6 @@ class ProjectsController < ApplicationController
     else
         pagesize = 10;
     end
-
     
     if params.has_key? "templates_only"
       templates = true
@@ -28,10 +27,10 @@ class ProjectsController < ApplicationController
       templates = false
     end
     
-    if sort=="ASC" or sort=="DESC"
-      @projects = Project.search(params[:search]).paginate(page: params[:page], per_page: pagesize).order("created_at #{sort}").only_templates(templates)
-    else
+    if sort == "RATING"
       @projects = Project.search(params[:search]).paginate(page: params[:page], per_page: pagesize).order("like_count DESC").only_templates(templates)
+    else
+      @projects = Project.search(params[:search]).paginate(page: params[:page], per_page: pagesize).order("#{sort}").only_templates(templates)
     end
 
     #Featured list
@@ -69,8 +68,13 @@ class ProjectsController < ApplicationController
       @has_fields = true
     end
 
+    @data_sets = @project.data_sets.where( hidden: false)
+    if @data_sets.nil?
+      @data_sets = []
+    end
+    
     recur = params.key?(:recur) ? params[:recur].to_bool : false
-
+    
     respond_to do |format|
       format.html # show.html.erb
       format.json { render json: @project.to_hash(recur) }
@@ -95,7 +99,11 @@ class ProjectsController < ApplicationController
         Field.create({project_id:@project.id, field_type: f.field_type, name: f.name, unit: f.unit})
       end
     else
-      @project = Project.new({user_id: @cur_user.id, title:"#{@cur_user.firstname} #{@cur_user.lastname[0].pluralize} Project"})
+      if(!params.try(:[], :project_name))
+        @project = Project.new({user_id: @cur_user.id, title:"#{@cur_user.firstname} #{@cur_user.lastname[0].pluralize} Project"})
+      else
+        @project = Project.new({user_id: @cur_user.id, title: params[:project_name]})
+      end
       success = @project.save
     end
 
@@ -114,7 +122,7 @@ class ProjectsController < ApplicationController
   # PUT /projects/1.json
   def update
     @project = Project.find(params[:id])
-    editUpdate  = params[:project].to_hash
+    editUpdate  = params[:project]
     hideUpdate  = editUpdate.extract_keys!([:hidden])
     adminUpdate = editUpdate.extract_keys!([:featured, :is_template])
     success = false
@@ -188,29 +196,35 @@ class ProjectsController < ApplicationController
     end
   end
 
-
+  # POST /projects/1/updateLikedStatus 
   def updateLikedStatus
-
-    like = Like.find_by_user_id_and_project_id(@cur_user,params[:id])
+    like = Like.find_by_user_id_and_project_id(@cur_user, params[:id])
 
     if(like)
-      Like.destroy(like.id)
+      if Like.destroy(like.id)    
+        count = Project.find(params[:id]).likes.count
+        Project.find(params[:id]).update_attributes(:like_count => count)
+        respond_to do |format|
+          format.json { render json: {update: count}, status: :ok }
+        end
+      else
+        respond_to do |format|
+          format.json { render json: {}, status: :forbidden }
+        end
+      end
+      
     else
-      Like.create({user_id:@cur_user.id,project_id:params[:id]})
-    end
-
-    count = Project.find(params[:id]).likes.count
-
-    Project.find(params[:id]).update_attributes(:like_count => count)
-
-    if(count == 0 || count > 1)
-      @response = count.to_s + " people like this"
-    else
-      @response = count.to_s + " person likes this"
-    end
-
-    respond_to do |format|
-      format.json { render json: {update: @response} }
+      if Like.create({user_id:@cur_user.id,project_id:params[:id]})
+        count = Project.find(params[:id]).likes.count
+        Project.find(params[:id]).update_attributes(:like_count => count)
+        respond_to do |format|
+          format.json { render json: {update: count}, status: :ok }
+        end
+      else
+        respond_to do |format|
+          format.json { render json: {}, status: :forbidden }
+        end
+      end  
     end
   end
 
@@ -218,6 +232,7 @@ class ProjectsController < ApplicationController
     require 'net/http'
 
     @pid = params[:pid]
+    field_map = {}
 
     if( !@pid.nil? )
 
@@ -230,7 +245,9 @@ class ProjectsController < ApplicationController
           )
         )
 
-      @project = Project.new({user_id: @cur_user.id, title: json["data"]["name"], content: json["data"]["description"], featured: json["data"]["featured"]})
+      content = json["data"]["description"] + "<br /><br />Imported from old iSENSE <br />Originally created on #{json['data']['timecreated'].to_time.strftime '%a %b %d %Y'}<br />Click <a href='http://old.isenseproject.org/experiment.php?id=#{@pid}'>here</a> to view the original"
+      
+      @project = Project.new({user_id: @cur_user.id, title: json["data"]["name"], content: content, featured: json["data"]["featured"]})
 
       #If clone is successful clone fields
       if @project.save
@@ -257,7 +274,9 @@ class ProjectsController < ApplicationController
           else
             type = 2
           end
-          @project.fields.push Field.create({project_id: @project.id, field_type: type, name: f["field_name"], unit: f["unit_name"]})
+          
+          field =  Field.create({project_id: @project.id, field_type: type, name: f["field_name"], unit: f["unit_name"]})
+          field_map[f["field_id"]] = field
         end
 
         #Get session list
@@ -307,19 +326,32 @@ class ProjectsController < ApplicationController
           json = ActiveSupport::JSON.decode response
 
           header = Hash.new
-
-          @project.fields.all.each_with_index do |f, i|
-            header["#{i}"] = { id: "#{f.id}", type: "#{f.field_type}" }
+          
+          json[0]["fields"].each_with_index do |f, i|
+            field = field_map[f["field_id"]]
+            header["#{i}"] = { id: "#{field.id}", type: "#{field.field_type}" }
           end
+          
+          data = Array.new
 
-          data = Hash.new
-
-          json[0]["data"].each_with_index do |d, i|
-            data["#{i}"] = d
+          json[0]["data"].each do |dr|
+            row =  Hash.new
+            dr.each_with_index do |d, i|
+              if header["#{i}"][:type] == "1"
+                begin
+                  row[header["#{i}"][:id]] = "U #{Integer d}"
+                rescue
+                  row[header["#{i}"][:id]] = d
+                end
+              else
+                row[header["#{i}"][:id]] = d
+              end
+            end
+            data.push row
           end
-
-          DataSet.upload_form(header, data, @cur_user, @project, ses['name'])
-
+          
+          data_set = DataSet.create(user_id: @cur_user.id, project_id: @project.id, 
+                                    title: ses['name'], data: data)
         end
 
         redirect_to @project
@@ -370,7 +402,7 @@ class ProjectsController < ApplicationController
 
       end
 
-      @project.fields = field_list
+      @project.fields = field_list.find_all {|ff| not ff.id.nil? }
       @project.save!
 
       respond_to do |format|
@@ -408,27 +440,35 @@ class ProjectsController < ApplicationController
           end
         end
 
+        # TIME TO PULL OUT THE FIELDS THAT DONT MAKE SENSE
+        
         col.each_with_index do |c, i|
           c.each do |dp|
-            if( dp[0] != "")
-              if( dp[0].to_i == 0 and dp[0] != "0" )
+            logger.info dp
+            if dp[0] != "" and dp[0] != nil
+              begin
+                f = Float(dp[0])
+                
+                # Check lat Bounds
+                if (f <-90.0 or f > 90.0)
+                  p_fields[i][3] = ""
+                end
+                
+                # Check lon Bounds
+                if (f <-180.0 or f > 180.0)
+                  p_fields[i][4] = ""
+                end
+                
+              rescue
+                # Cell is not a number
                 p_fields[i][1] = ""
                 p_fields[i][3] = ""
                 p_fields[i][4] = ""
               end
-
-              if( dp[0].to_f > 180 or dp[0].to_f < -180 )
-                p_fields[i][3] = ""
-                p_fields[i][4] = ""
-              end
-
-              if( dp[0].to_i.to_f.to_s != dp[0].to_f.to_s )
-                p_fields[i][0] = ""
-              end
             end
           end
         end
-
+        
         p_fields.each_with_index do |p, i|
 
           new_p = Array.new

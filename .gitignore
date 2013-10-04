@@ -14,8 +14,12 @@
 /log/*.log
 /tmp
 db/schema.rb
+db/data.yml
 *~
 *.orig
 aws_config.yml
 *.DS_Store
-Gemfile.lock
+
+public/assets/*
+log/*
+db/data.yml*

@@ -5,10 +5,15 @@ a:hover
   text-decoration: none;
 }
 
-i
+i[class*='icon-']
 {
-  color: transparent;
-  text-shadow: none;
+  color:black;
+
+}
+
+i.icon-white
+{
+    color: white !important;
 }
 
 .hero-unit
@@ -88,6 +93,8 @@ i
 
   margin: 0px 5px 5px 5px;
 
+  height: 133px;
+  
   -webkit-border-radius: 6px 6px 6px 6px;
      -moz-border-radius: 6px 6px 6px 6px;
           border-radius: 6px 6px 6px 6px;
@@ -215,11 +222,3 @@ i
   background-color: #EEE;
 }
 
-/* This is the lesser of two evils. In reality there should be different layouts for tablets and phones*/
-.span5{
-  min-width:440px;
-}
-
-.span7{
-  min-width:670px;
-}

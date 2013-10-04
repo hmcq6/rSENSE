@@ -32,6 +32,15 @@ $ ->
     window.globals ?= {}
 
     ###
+    Makes a title with apropriate units for a field
+    ###
+    window.fieldTitle = (field) ->
+      if field.unitName isnt ""
+        "#{field.fieldName} (#{field.unitName})"
+      else
+        field.fieldName
+
+    ###
     Removes 'item' from the array 'arr'
     Returns the modified (or unmodified) arr.
     ###
@@ -272,7 +281,8 @@ $ ->
         if globals.scatter instanceof DisabledVis
           delete globals.scatter
           globals.scatter = new Scatter "scatter_canvas"
-          ($ "#visTabList li[aria-controls='scatter_canvas'] a").css "text-decoration", ""
+          ($ "#visTabList li[aria-controls='scatter_canvas'] a span").css "text-decoration", ""
+          ($ "#visTabList li[aria-controls='scatter_canvas'] a img").attr('src', ($ "#visTabList li[aria-controls='scatter_canvas'] a img").data('enable-src')) 
           
         globals.scatter.xAxis = data.normalFields[data.normalFields.length - 1]
         ($ "#visTabList li[aria-controls='scatter_canvas'] a").click()
@@ -285,8 +295,8 @@ $ ->
     globals.generateElapsedTimeDialog = ->
 
         if data.timeFields.length is 1
-            name  = 'Elapsed Time ('
-            name += data.fields[data.timeFields[0]].fieldName + ')'
+            name  = 'Elapsed Time [from '
+            name += data.fields[data.timeFields[0]].fieldName + ']'
             data.generateElapsedTime name, data.timeFields[0]
             globals.curVis.end()
             globals.curVis.start()
@@ -328,8 +338,8 @@ $ ->
             modal: true
             buttons:
                 Generate: =>
-                    name  = 'Elapsed Time ('
-                    name += data.fields[selectedTime].fieldName + ')'
+                    name  = 'Elapsed Time [from '
+                    name += data.fields[selectedTime].fieldName + ']'
                     data.generateElapsedTime name, selectedTime
                     globals.curVis.end()
                     globals.curVis.start()

@@ -31,6 +31,10 @@ module ApplicationHelper
       "invalid input: try get_field_name(string)"
     end
   end
+  
+  def get_featured_tutorials
+    return Tutorial.where("featured_number IS NOT NULL").order('featured_number ASC')
+  end
 
   # Begin permissions stuff
   def can_edit? (obj)
@@ -42,7 +46,7 @@ module ApplicationHelper
     case obj
     when User
       (obj.id == @cur_user.try(:id)) || @cur_user.try(:admin)
-    when Project, DataSet, Visualization, Tutorial, MediaObject
+    when Project, DataSet, Visualization, Tutorial, MediaObject, News
       (obj.owner.id == @cur_user.try(:id)) || @cur_user.try(:admin)
     when Field
       (obj.owner.owner.id == @cur_user.try(:id)) || @cur_user.try(:admin)
@@ -74,7 +78,7 @@ module ApplicationHelper
     end
 
     case obj
-    when User, Project, Tutorial
+    when User, Project, Tutorial, News
       @cur_user.try(:admin)
     when DataSet, Visualization, MediaObject
       (obj.owner.id == @cur_user.try(:id)) || @cur_user.try(:admin)
@@ -97,8 +101,16 @@ module ApplicationHelper
   def render_title
     "iSENSE - #{@namespace[:controller].capitalize}"
   end
-end
 
+  def is_admin?
+    if !@cur_user.nil?
+      if @cur_user.admin == true
+        return true
+      end
+    end
+    return false
+  end
+ end 
 class String
   def to_bool
     return true if self == true || self =~ (/(true|t|yes|y|1)$/i)

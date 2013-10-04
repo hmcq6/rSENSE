@@ -1,6 +1,9 @@
 class MediaObjectsController < ApplicationController
   include ApplicationHelper
 
+  # Allow images to be shown without authentication
+  skip_before_filter :authorize, :only => [:show]
+
   # GET /media_objects/1
   # GET /media_objects/1.json
   def show
@@ -18,7 +21,7 @@ class MediaObjectsController < ApplicationController
   # PUT /media_objects/1.json
   def update
     @media_object = MediaObject.find(params[:id])
-    editUpdate = params[:media_object].to_hash
+    editUpdate = params[:media_object]
     success = false
     
     if can_edit? @media_object
@@ -30,7 +33,7 @@ class MediaObjectsController < ApplicationController
         format.html { redirect_to @media_object, notice: 'Media Object was successfully updated.' }
         format.json { render json:{}, status: :ok }
       else
-        format.html { render action: "edit" }
+        format.html { redirect_to @media_object, alert: 'Media Object not successfully updated.' }
         format.json { render json: @media_object.errors.full_messages(), status: :unprocessable_entity }
       end
     end
@@ -69,7 +72,7 @@ class MediaObjectsController < ApplicationController
     data = params[:keys].split('/')
     target = data[0]
     id = data[1]
-    
+    logger.info "TARGET = #{target} and ID = #{id}"
     #Set up the link to S3
     s3ConfigFile = YAML.load_file('config/aws_config.yml')
     
@@ -81,10 +84,14 @@ class MediaObjectsController < ApplicationController
     bucket = s3.buckets['isenseimgs']
 
     #Set up the file for upload
-    fileKey = (Time.now.strftime "%s") + "." + params[:file].content_type.split("/")[1]
+    
     fileType = params[:file].content_type.split("/")[0]
     filePath = params[:file].tempfile 
     fileName = params[:file].original_filename
+    fileKey = SecureRandom.uuid() + "." + fileName
+    while MediaObject.find_by_file_key(fileKey) != nil
+      fileKey = SecureRandom.uuid() + "." + fileName
+    end
     
     if fileType == 'application'
       extended = params[:file].content_type.split("/")[1]
@@ -125,19 +132,26 @@ class MediaObjectsController < ApplicationController
       if(can_edit?(@visualization))
         @mo = {user_id: @visualization.owner.id, src: o.public_url.to_s, name: fileName, media_type: fileType, visualization_id: @visualization.id, file_key: fileKey}
       end
+    when 'news'
+      @news = News.find_by_id(id)
+      if(can_edit?(@news))
+        @mo = {user_id: @news.owner.id, src: o.public_url.to_s, name: fileName, media_type: fileType, news_id: @news.id, file_key: fileKey}
+      end
+        
     end
 
     #If we managed to make some params build the media object and write to S3
     if(defined? @mo)      
     
-      #Generate a media object with the calculated params
-      MediaObject.create(@mo)
-    
       #Write the file to S3
-      o.write file: filePath
+      o.write(file: filePath, :content_disposition => "attachment;filename=#{fileName}")
+
+      #Generate a media object with the calculated params
+      mo = MediaObject.create(@mo)
+      mo.add_tn
       
       #Tell redactor where the image is located
-      render json: {filelink: o.public_url.to_s, filename: fileName}
+      render json: {filelink: o.public_url.to_s, filename: fileName, mo: mo.to_hash}
 
     else
       

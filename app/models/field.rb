@@ -1,8 +1,10 @@
 class Field < ActiveRecord::Base
   attr_accessible :project_id, :field_type, :name, :unit
   validates_presence_of :project_id, :field_type, :name
+  validates_uniqueness_of :name, scope: :project_id
+  belongs_to :project
 
-  belongs_to :owner, class_name: "Project", foreign_key: "project_id"
+  alias_attribute :owner, :project
 
   default_scope :order => :field_type
 
@@ -20,5 +22,16 @@ class Field < ActiveRecord::Base
       })
     end
     h
+  end
+  
+  def self.bulk_update(fields)
+    errors = {}
+    fields.each do |key, val|
+      field = Field.find(key)
+      unless field.update_attributes(val)
+        errors[key] = field.errors.full_messages
+      end
+    end
+    errors
   end
 end

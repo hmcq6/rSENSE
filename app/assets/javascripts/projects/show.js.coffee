@@ -26,79 +26,9 @@ $ ->
             ($ 'span.edit_menu span.info_text').text(name)
             ($ '#name_box').modal('hide')
 
-    respond_template = ( resp ) ->
-      ($ 'button.finished_button').addClass 'disabled'
-
-      ($ '#template_match_table').html ''
-      ($ '#template_match_table').append '<tr><th> Field Name </th><th> Field Unit </th><th> Field Type </th></tr>'
-
-      for field, field_index in resp.fields
-        options = "<option value='-1'>Select One...</option>"
-        for type, type_index in resp.p_field_types[field_index]
-          options += "<option value='#{type_index}'>#{type}</option>"
-
-        html = "<tr><td class='field_name'>#{field.name[0..29]}"
-
-        if field.name.length > 29
-          html += '...'
-
-        html += "</td><td><input type='text' class='field_unit' /></td><td><select>#{options}</select></td></tr>"
-
-        ($ '#template_match_table').append html
-
-      ($ "button.cancel_upload_button").click ->
-          ($ "#template_match_box").modal("hide")
-
-      ($ "#template_match_table select").change ->
-        check = true
-        for sel in ($ '#template_match_table').find(':selected')
-          if ($ sel).text() == "Select One..."
-            check = false
-
-        if check
-          ($ 'button.finished_button').removeClass 'disabled'
-        else
-          ($ 'button.finished_button').addClass 'disabled'
-
-
-      ($ "button.finished_button").click ->
-        if !($ 'button.finished_button').hasClass('disabled')
-          newFields =
-            pid: resp.pid
-            names: []
-            units: []
-            types: []
-
-          for names in ($ '#template_match_table').find('.field_name')
-            newFields.names.push ($ names).text()
-
-          for units in ($ '#template_match_table').find('.field_unit')
-            newFields.units.push ($ units).val()
-
-          for types in ($ '#template_match_table').find(':selected')
-            newFields.types.push ($ types).text()
-
-          $.ajax
-            type: "POST"
-            dataType: "json"
-            url: "#{window.location}/templateFields"
-            data: {save: true, fields: newFields}
-            success: (resp) ->
-              ($ "#match_box").modal("hide")
-              window.location = window.location
-
-      #begin horrible hackeyness of prodding the modal box
-      #were gonna strech it and try and poke it to the center
-      ($ '#template_match_box').css('width', '670px')
-
-      ($ "#template_match_box").modal
-          backdrop: 'static'
-          keyboard: true
-
-
     respond_csv = ( resp ) ->
       ($ "#match_table").html ''
-      ($ "#match_table").append "<tr><th> Experiment Field </th> <th> CSV Header </th></tr>"
+      ($ "#match_table").append "<tr><th> Project Field </th> <th> File Header </th></tr>"
 
       for field, fieldIndex in resp.fields
 
@@ -115,7 +45,8 @@ $ ->
                                   </tr>"
 
       ($ "button.cancel_upload_button").click ->
-        ($ "#match_box").modal("hide")
+        location.reload()
+        #($ "#match_box").modal("hide")
 
       ($ "button.finished_button").click ->
 
@@ -148,7 +79,8 @@ $ ->
             ($ "#match_box").modal("hide")
             helpers.name_popup resp, "Dataset", "data_set"
           error: (resp) ->
-            alert "Somthing went horribly wrong. I'm sorry."
+            alert "We were unable to upload your CSV. See console for details."
+            console.log resp
 
       ($ "#match_box").modal
         backdrop: 'static'
@@ -162,10 +94,6 @@ $ ->
       else
         respond_csv(resp)
 
-    ($ "#template_file_form").ajaxForm (resp) ->
-      respond_template(resp)
-
-
 
     load_qr = ->
       ($ '#exp_qr_tag').empty()
@@ -176,62 +104,38 @@ $ ->
     ($ window).resize ->
       load_qr()
 
-    #selection of featured image
-    ($ '.img_selector').click ->
-      mo = ($ @).attr("mo_id")
-      exp = ($ @).attr("exp_id")
-
-      data={}
-      data["project"] = {}
-      data["project"]["featured_media_id"] = mo
-
-      $.ajax
-        url: "/projects/#{exp}"
-        type: "PUT"
-        dataType: "json"
-        data:
-          data
-
     # Initializes the dropdown lightbox for google drive upload
     ($ '#doc_box').modal
       backdrop: 'static'
       keyboard: true
       show: false
 
-    # Does the liking and unliking when the star icon is clicked
+    # Does the liking and unliking when the thumbs-up icon is clicked
     ($ '.liked_status').click ->
-      icon = ($ @).children 'i'
-      if icon.attr('class').indexOf('icon-star-empty') != -1
-        icon.replaceWith "<i class='icon-star'></i>"
-      else
-        icon.replaceWith "<i class='icon-star-empty'></i>"
+      root = ($ ".likes")
+      was_liked = ($ @).hasClass('active')
+
       $.ajax
-        url: '/projects/' + ($ this).attr('exp_id') + '/updateLikedStatus'
+        url: '/projects/' + root.attr('project_id') + '/updateLikedStatus'
         dataType: 'json'
         success: (resp) =>
-          ($ @).siblings('.like_display').html resp['update']
-
+          root.find('.like_display').html resp['update']
+        error: (resp) =>
+          ($ @).errorFlash()
+          if was_liked
+            ($ @).addClass('active')
+          else
+            ($ @).removeClass('active')
+    
 
     # This is black magic that displays the upload csv and upload google doc lightboxes
     ($ '#upload_csv').click ->
       ($ '#csv_file_input').click()
       false
 
-    ($ '#csv_file_input').click ->
-      ($ '#csv_file_form').attr 'action', "#{window.location}/CSVUpload"
-
-    ($ '#template_file_form').click ->
-      ($ '#template_file_form').attr 'action', "#{window.location}/templateFields"
-
-    ($ '#template-from-file').click ->
-      ($ '#template_file_input').click()
-      false
-
     ($ '#csv_file_input').change ->
+      ($ '#csv_file_form').attr 'action', "#{window.location.pathname}/CSVUpload"
       ($ '#csv_file_form').submit()
-
-    ($ '#template_file_input').change ->
-      ($ '#template_file_form').submit()
 
     ($ '#cancel_doc').click ->
       ($ '#doc_box').modal 'hide'
@@ -246,17 +150,20 @@ $ ->
     # Parse the Share url from a google doc to upload a csv from google drive
     ($ '#save_doc').click ->
       tmp = ($ '#doc_url').val()
+      
       if tmp.indexOf('key=') isnt -1
         tmp = tmp.split 'key='
         key = tmp[1]
         tmp = window.location.pathname.split 'projects/'
         pid = tmp[1]
         url = "/data_sets/#{pid}/postCSV"
-        $.ajax( { url: url, data: { key: key, id: pid } } ).done (data, textStatus, error) ->
-          if data.status is 'success'
-            window.location = data.redirrect
+        $.ajax( { url: url, data: { key: key, id: pid, tmpfile: ($ '#doc_url').val()} } ).done (data, textStatus, error) ->
+          if data.url != undefined
+            window.location = data.url
+          else
+            respond_csv(data)
       else
-        ($ '#doc_url').css 'background-color', 'red'
+        ($ '#doc_url').errorFlash()
 
     # Takes all sessions that are checked, appends its id to the url and
     # redirects the user to the view sessions page (Vis page)
@@ -273,12 +180,13 @@ $ ->
 
     #Select all/none check box in the data sets box
     ($ "#check_selector").click ->
+      root = ($ @).parents("table")
       if ($ this).is(":checked")
-        ($ this).parent().parent().parent().find("[id^=ds_]").each (i,j) =>
+        root.find("[id^=ds_]").each (i,j) =>
           ($ j).prop("checked",true)
         ($ '#vis_button').prop("disabled",false)
       else
-        ($ this).parent().parent().parent().find("[id^=ds_]").each (i,j) =>
+        root.find("[id^=ds_]").each (i,j) =>
           ($ j).prop("checked",false)
           ($ '#vis_button').prop("disabled",true)
 
@@ -288,8 +196,10 @@ $ ->
       ($ document).find("[id^=ds_]").each (i,j) =>
         if(($ j).is(":checked"))
           should_disable = false
+        else
+          ($ '#check_selector').prop("checked",false)
         $('#vis_button').prop("disabled", should_disable)
-
+        
     check_for_selection()
 
     #Add click events to all check boxes in the data_sets box
@@ -337,16 +247,13 @@ $ ->
           data_set:
             hidden: true
         success: =>
-          row = ($ @).parents('div.dataset')
-          row.hide_row () =>
-            ($ 'div#dataset_list div.dataset').filter(':visible').each (idx) ->
-              if idx % 2 is 0
-                ($ @).addClass 'feed-even'
-                ($ @).removeClass 'feed-odd'
-              else
-                ($ @).removeClass 'feed-even'
-                ($ @).addClass 'feed-odd'
+            recolored = false
+            row = ($ @).parents('tr')
+            tbody = row.parents('tbody')
+            row.delete_row =>
               row.remove()
+              tbody.recolor_rows(recolored)
+              recolored = true
               
     ($ 'a.data_set_delete').click (e) ->
   
@@ -358,33 +265,49 @@ $ ->
           type: 'DELETE'
           dataType: "json"
           success: =>
-            row = ($ @).parents('div.dataset')
-            row.hide_row () =>
-              ($ 'div#dataset_list div.dataset').filter(':visible').each (idx) ->
-                if idx % 2 is 0
-                  ($ @).addClass 'feed-even'
-                  ($ @).removeClass 'feed-odd'
-                else
-                  ($ @).removeClass 'feed-even'
-                  ($ @).addClass 'feed-odd'
+            recolored = false
+            row = ($ @).parents('tr')
+            tbody = row.parents('tbody')
+            row.delete_row =>
               row.remove()
-
-    ($ 'a.media_object_delete').click (e) ->
+              tbody.recolor_rows(recolored)
+              recolored = true
+              
+    ## controls for saved vizes  
+    ($ 'a.viz_hide').click (e) ->
+      e.preventDefault()
+      
+      $.ajax
+        url: ($ @).attr('href')
+        type: 'PUT'
+        dataType: "json"
+        data: 
+          visualization:
+            hidden: true
+        success: =>
+          recolored = false
+          row = ($ @).parents('tr')
+          tbody = row.parents('tbody')
+          row.delete_row =>
+            row.remove()
+            tbody.recolor_rows(recolored)
+            recolored = true
+              
+    ($ 'a.viz_delete').click (e) ->
       e.preventDefault()
       
       if helpers.confirm_delete ($ @).attr('name')
         $.ajax
-          url: ($ @).attr("href")
+          url: ($ @).attr('href')
           type: 'DELETE'
           dataType: "json"
           success: =>
-            row = ($ @).parents('div.mediaobject')
-            row.hide_row () =>
-              ($ 'div#media_object_list div.mediaobject').filter(':visible').each (idx) ->
-                if idx % 2 is 0
-                  ($ @).addClass 'feed-even'
-                  ($ @).removeClass 'feed-odd'
-                else
-                  ($ @).removeClass 'feed-even'
-                  ($ @).addClass 'feed-odd'
+            recolored = false
+            row = ($ @).parents('tr')
+            tbody = row.parents('tbody')
+            row.delete_row =>
               row.remove()
+              tbody.recolor_rows(recolored)
+              recolored = true
+              
+              
