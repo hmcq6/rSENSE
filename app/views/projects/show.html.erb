@@ -1,4 +1,3 @@
-<p id="notice"><%= notice %></p>
 <div class="row">
   <div class="span7">
     <div class="row">
@@ -75,7 +74,7 @@
               <% @data_sets.each do |s| %>
                 <tr class="<%= cycle('feed-even', 'feed-odd')%> dataset" style="position:relative">
                   <td class="gravatar">
-                    <div >
+                    <div class="gravatar">
                       <%if Gravatar.new.url(s.owner, 32) != nil%>
                         <%= image_tag Gravatar.new.url(s.owner, 32), :size => "32x32"%>
                       <%end%>
@@ -162,7 +161,7 @@
     
       <!-- ##### SESSION CREATION MENU ##### -->
       <%=render layout: "shared/box", locals: {title: 'Create Data Set', width:'5', unique_id: 'create_data_set', should_hide: !(@cur_user.try(:id) && @project.fields.count() > 0)} do %>
-        <% if can_edit? @project || !@project.lock%>
+        <% if can_edit?(@project) || !@project.lock%>
           <div class="row-fluid">
             <div class="span4 center">
             <%= link_to :controller => :data_sets, :action => :manualEntry do %>

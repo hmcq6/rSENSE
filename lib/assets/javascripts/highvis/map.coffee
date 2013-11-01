@@ -207,6 +207,7 @@ $ ->
                       position: latlng
                       icon: pinSym
                       desc: label
+                      visible: ((groupIndex in globals.groupSelection) and @visibleMarkers is 1)
                       
                     @oms.addMarker newMarker
                     
@@ -233,6 +234,7 @@ $ ->
                   strokeColor: globals.colors[index]
                   strokeOpacity: 1.0
                   strokeWeight: 2
+                  visible: ((index in globals.groupSelection) and @visibleLines is 1)
                   
                 @timeLines[index].setMap(@gmap)
 
@@ -243,7 +245,7 @@ $ ->
             # Figure default heatmap
             if not @heatmapRadius?
               @heatmapRadius = 1
-              dist = google.maps.geometry.spherical.computeDistanceBetween latlngbounds.getNorthEast(), latlngbounds.getSouthWest()
+              dist = @getDiag(latlngbounds)
               pixelDist = @getPixelDiag()
               dpp = pixelDist / dist
               
@@ -289,11 +291,14 @@ $ ->
                 
               @update()
             
+            checkProj = =>
+              if @projOverlay.getProjection() is undefined
+                google.maps.event.addListenerOnce @gmap, "idle", checkProj
+              else
+                finalInit()
+            
             # Need to wait for the projection to become available for updates
-            if @gmap.getProjection() is undefined
-              google.maps.event.addListenerOnce @gmap, "projection_changed", finalInit
-            else
-              finalInit()
+            checkProj()
         
         update: ->
           # Disable old heatmap (if there)
@@ -366,6 +371,7 @@ $ ->
             controls += "<br>"
             controls += "<div class='inner_control_div'> Heatmap Radius: "
             controls += "<input id='radiusText' value='#{@heatmapRadius}'></input>m</div>"
+            controls += "<div class='inner_control_div'> <div id='heatmapErrorText'> </div></div>"
             controls += "<div id='heatmapSlider' style='width:95%'></div>"
 
             # Other
@@ -461,7 +467,10 @@ $ ->
           ww = ($ "##{@canvas}").width()
           hh = ($ "##{@canvas}").height()
           Math.sqrt(ww*ww + hh*hh)
-            
+          
+        getDiag: (latlngbounds = @gmap.getBounds()) ->
+          google.maps.geometry.spherical.computeDistanceBetween latlngbounds.getNorthEast(), latlngbounds.getSouthWest()
+          
         getHeatmapScale: () ->
           viewBounds = @gmap.getBounds()
           # Extends bounds by radius of heatmap
@@ -489,11 +498,24 @@ $ ->
             
             a = @projOverlay.projectPixels(heatBounds.getNorthEast())
             b = @projOverlay.projectPixels(heatBounds.getSouthWest())
-            pixelDist = Math.sqrt((a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y))
-          
-            pixelDensity = dist / pixelDist
             
-            return Math.min(Math.ceil(@heatmapRadius / pixelDensity), @getPixelDiag() / 4)
+            pixelDist = Math.sqrt((a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y))
+            
+            pixelDensity = dist / pixelDist
+            newRad = Math.ceil(@heatmapRadius / pixelDensity)
+            maxRad = Math.ceil(@getPixelDiag() / 4)
+            
+            # Single point check
+            if pixelDist is 0
+              newRad = Math.ceil(@heatmapRadius * (@getPixelDiag() / @getDiag()))
+            
+            if newRad <= maxRad
+              ($ '#heatmapErrorText').html ''
+              return newRad
+            else
+              act = Math.ceil(maxRad * (@getDiag() / @getPixelDiag()))
+              ($ '#heatmapErrorText').html "The radius had to be decreased to #{act}m for performance reasons. It will restore to your selection as the map is zoomed out."
+              return maxRad
           else
             return @heatmapPixelRadius
             
