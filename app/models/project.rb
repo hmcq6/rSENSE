@@ -92,6 +92,15 @@ class Project < ActiveRecord::Base
     end
     h
   end
+
+  def self.open_spreadsheet(file)
+    case File.extname(file.original_filename)
+    when ".ods" then Roo::Openoffice.new(file.path, false, :ignore)
+    when ".xls" then Roo::Excel.new(file.path, false, :ignore)
+    when ".xlsx" then Roo::Excelx.new(file.path, false, :ignore)
+    when ".csv" then CSV_Converter(file)
+    else raise "Invalid file type: #{file.original_filename}"
+  end
 end
 
 # where filter like filters[0] AND filter like filters[1]
