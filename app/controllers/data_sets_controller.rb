@@ -267,7 +267,10 @@ class DataSetsController < ApplicationController
       respond_to do |format|
         format.html
       end
-    rescue Exception => e
+    rescue NoMethodError => e
+      flash[:error] = 'File could not be read: mismatched columns or headers'
+      redirect_to project_path(project)
+    else
       flash[:error] = 'File could not be read'
       redirect_to project_path(project)
     end
