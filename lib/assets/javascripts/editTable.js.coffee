@@ -447,10 +447,10 @@ $ ->
         # add buttons
         for button in settings.buttons
           do (button) ->
-            if button is "close" or button is "Close"
-              ($ table).find('tr').eq(0).append '<th></th>'
-              ($ table).find('tbody').children().each ->
-                ($ @).append '<td><div class="text-center"><a class="close" style="float:none;">&times;</a></div></td>'
+            #if button is "close" or button is "Close"
+            #  ($ table).find('tr').eq(0).append '<th></th>'
+            #  ($ table).find('tbody').children().each ->
+            #    ($ @).append '<td><div class="text-center"><a class="close" style="float:none;">&times;</a></div></td>'
 
             if button is "add" or button is "Add"
               button_container.append("""<button id='edit_table_add' class='btn btn-success'
@@ -465,20 +465,20 @@ $ ->
           ($ '#edit_table_control').remove()
 
         # bootstrapify the table
-        if settings.bootstrapify is true
-          ($ @).addClass "table table-bordered table-striped"
-          wrap_table(table)
+        #if settings.bootstrapify is true
+          #($ @).addClass "table table-bordered table-striped"
+          #wrap_table(table)
 
         ### BIND ACTIONS ###
 
         # bind remove_row to .close buttons
-        ($ table).find('td .close').each ->
-          ($ @).click ->
-            remove_row(@)
+        #($ table).find('td .close').each ->
+          #($ @).click ->
+            #remove_row(@)
             
 
         # bind map button
-        ($ 'td').find('.map_picker').click ->
+        ($ '.map_picker').click ->
           ($ this).closest("tr").addClass('target')
           previous_lon = ($ this).closest('tr').find('.validate_longitude').val()
           previous_lat = ($ this).closest('tr').find('.validate_latitude').val()
@@ -490,8 +490,8 @@ $ ->
           ($ '#map_picker').modal()
 
         #bind time button
-        ($ 'td').find('.datepicker').datetimepicker()
-        ($ 'td').find('.datepicker').on 'changeDate', (e) ->
+        ($ '.datepicker').datetimepicker()
+        ($ '.datepicker').on 'changeDate', (e) ->
           ($ e.target).find('input').trigger 'change'
 
         # add row functionality

@@ -11,7 +11,7 @@
   <div class="row">
     <div class="span12">
       <div style="overflow-x: auto;">
-        <table id="editTable" class="table" data-project-id="<%= @project.id %>">
+        <table id="editTable" class="table table-bordered table-striped" data-project-id="<%= @project.id %>">
           <thead>
             <tr>
               <% @project.fields.each do |f| %>
@@ -20,6 +20,7 @@
                   (<%=f.unit%>)
                 <% end %></th>
               <% end %>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -27,7 +28,7 @@
               <tr>
                 <% @project.fields.each_with_index do |field| %>
                   <% if field.restrictions.nil? %>
-                    <td><% if !row["#{field.id}"].nil? %><%= row["#{field.id}"] %><% end %></td>
+                    <td><input class="form-control spreadsheet" value='<% if !row["#{field.id}"].nil? %><%= row["#{field.id}"] %><% end %>' /></td>
                   <% else %>
                     <td>
                       <select class="form-control">
@@ -43,6 +44,7 @@
                     </td>
                   <% end %>
                 <% end %>
+                <td><div class="text-center"><a class="close" style="float:none;" onclick="$(this).parent().parent().parent().remove()">&times;</a></div></td>
               </tr>
             <% end %>
           </tbody>
