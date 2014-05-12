@@ -1,9 +1,3 @@
-<script type="text/javascript">
-  window.fields = JSON.parse('<%= raw @project.fields.to_json%>');
-  window.postURL = '<%= url_for :controller => :data_sets, :action => :edit, :eid => @project.id %>';
-</script>
-<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
-
 <% if can_edit?(@data_set) %>
 
   <div class="full_width_edit" style="font-size:2em;"><%= data_set_edit_helper 'title', can_edit?(@data_set), false %></div>
@@ -11,7 +5,7 @@
   <div class="row">
     <div class="span12">
       <div style="overflow-x: auto;" width="100%">
-        <table id="editTable" width="100%" class="table table-bordered table-striped" data-project-id="<%= @project.id %>">
+        <table width="100%" id="neutable" class="spreadsheet" data-project-id="<%= @project.id %>">
           <thead>
             <tr>
               <% @project.fields.each do |f| %>
@@ -28,23 +22,20 @@
               <tr height="2em" width="100%">
                 <% @project.fields.each_with_index do |field| %>
                   <% if field.restrictions.nil? %>
-                    <td><input class="form-control spreadsheet" value='<% if !row["#{field.id}"].nil? %><%= row["#{field.id}"] %><% end %>' /></td>
-                  <% else %>
                     <td>
-                      <select class="form-control">
-                        <option>Select One</option>
+                      <input height="100%" type="text" value='<% if !row["#{field.id}"].nil? %><%= row["#{field.id}"] %><% end %>'>
+                    </td>
+                  <% else %>
                         <% field.restrictions.each do |r| %>
                           <% if row[field.id.to_s] == r %>
-                            <option selected value="<%= r %>"><%= r %></option>
-                          <% else %>
-                            <option value="<%= r %>"><%= r %></option>
+                            <td><%= r %></td>
                           <% end %>
                         <% end %>
                       </select>
                     </td>
                   <% end %>
                 <% end %>
-                <td><div class="text-center"><a class="close" style="float:none;" onclick="$(this).parent().parent().parent().remove()">&times;</a></div></td>
+                <td><div class="text-center"><a class="close" style="float:none;" onclick="$(this).closest('tr').remove()">&times;</a></div></td>
               </tr>
             <% end %>
           </tbody>

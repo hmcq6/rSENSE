@@ -16,9 +16,9 @@ $ ->
     
     field_count = ($ '#editTable').find('tr').eq(0).find('th').size() - 1
     
-    ($ '#editTable').find('tr').slice(1).each () ->
-      ($ @).find('td:not(:last)').each () ->
-        ($ @).attr 'width', "#{95 / (field_count)}%"
+    #($ '#editTable').find('tr').slice(1).each () ->
+      #($ @).find('td:not(:last)').each () ->
+        #($ @).attr 'width', "#{95 / (field_count)}%"
     ($ '#edit_table_add').click ->
       ($ @).find('td:not(:last)').each () ->
         ($ @).attr 'width', "#{95 / (field_count)}%"

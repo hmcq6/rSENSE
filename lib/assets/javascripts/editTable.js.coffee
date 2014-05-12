@@ -437,8 +437,8 @@ $ ->
         ($ table).after "<span id='edit_table_control' class='pull-right'></span>"
 
         # center TH's
-        ($ table).find('th').each ->
-          ($ @).html "<div class='text-center'>#{($ @).text()}</div>"
+        #($ table).find('th').each ->
+        #  ($ @).html "<div class='text-center'>#{($ @).text()}</div>"
 
         button_container = ($ '.edit_table_control')
         if button_container.length == 0
