@@ -55,6 +55,45 @@ class DataSetsController < ApplicationController
       format.json { render json: ret }
     end
   end
+  
+  # GET /data_sets/1/edit
+  def spreadsheet
+    @data_set = DataSet.find(params[:id])
+    @project = Project.find(@data_set.project_id)
+
+    if @project.lock? and !can_edit?(@project)
+      flash[:error] = "Can't edit data set, project is locked."
+      redirect_to @project
+      return
+    end
+
+    @fields = @project.fields
+
+    unless params['data'].nil?
+      uploader = FileUploader.new
+      sane = uploader.sanitize_data(params['data'])
+      if sane[:status]
+        data_obj = sane[:data_obj]
+        data = uploader.swap_columns(data_obj, @project)
+        @data_set.data = data
+        if @data_set.save!
+          ret = { status: :success, redirect: "/projects/#{@project.id}/data_sets/#{@data_set.id}" }
+        else
+          ret = { status: :unprocessable_entity, msg: @data_set.errors.full_messages }
+        end
+      else
+        err_msg = sane[:status] ? dataset.errors.full_messages : sane[:msg]
+        respond_to do |format|
+          format.json { render json: { data: sane[:data_obj], msg: err_msg }, status: :unprocessable_entity }
+        end
+      end
+    end
+
+    respond_to do |format|
+      format.html # edit.html.erb
+      format.json { render json: ret }
+    end
+  end
 
   # POST /data_sets
   # POST /data_sets.json

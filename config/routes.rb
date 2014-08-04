@@ -58,6 +58,10 @@ Rsense::Application.routes.draw do
   get '/data_sets/:id/edit' => 'data_sets#edit'
   put '/data_sets/:id/edit' => 'data_sets#edit'
   post '/data_sets/:id/edit' => 'data_sets#edit'
+  
+  get '/data_sets/:id/spreadsheet' => 'data_sets#spreadsheet'
+  put '/data_sets/:id/spreadsheet' => 'data_sets#spreadsheet'
+  post '/data_sets/:id/spreadsheet' => 'data_sets#spreadsheet'
 
   # Routes for displaying data
   get '/projects/:id/data_sets/*datasets' => 'visualizations#displayVis'
