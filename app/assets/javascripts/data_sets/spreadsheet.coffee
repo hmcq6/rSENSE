@@ -19,4 +19,8 @@ $ ->
         values = []
         
         ($ row).find('td').each (col_index, col) ->
-          console.log "gettin data"
+          values.push ($ col).find('input').val()
+        
+        pull_data.push values
+        
+      console.log pull_data
