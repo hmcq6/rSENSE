@@ -68,7 +68,6 @@ $ ->
         sessionNames = (sessionNames.slice 0, 27) + '...'
 
       name = 'Saved Vis - ' + data.projectName
-
       req = $.ajax
         type: 'POST'
         url: "/visualizations"
@@ -184,8 +183,9 @@ $ ->
 
       for visName in data.allVis
         vis  = eval "globals.#{visName.toLowerCase()}"
-        vis.end()
-        vis.serializationCleanup()
+        if vis?
+          vis.end()
+          vis.serializationCleanup()
 
       globalsCpy = stripFunctions globals
       dataCpy = stripFunctions data
