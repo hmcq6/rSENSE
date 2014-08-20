@@ -22,6 +22,7 @@
 //= require jquery-ui
 //= require jquery_ujs
 //  require jquery.ui.all
+//= require jquery-ui/draggable
 //= require unsupported
 //= require info_edit
 //= require menu_edit
@@ -65,5 +66,6 @@
 //= require highvis/runtime
 //
 //= require summernote
+//= require slickgrid
 //
 //= require_tree .
